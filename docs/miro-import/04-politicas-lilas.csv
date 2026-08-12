@@ -1,0 +1,10 @@
+﻿Tipo;Codigo;Regra;Conexao
+Politica;P1;Quando OrcamentoAprovado -> ReservarPecasNoEstoque;Orcamentacao -> Estoque
+Politica;P2;Quando OrcamentoAprovado -> MudarStatusOS para EmExecucao;Orcamentacao -> Oficina
+Politica;P3;Quando OrcamentoRejeitado + cliente solicita revisao -> GerarNovoOrcamento;Orcamentacao
+Politica;P4;Quando OrcamentoRejeitado + cliente cancela -> CancelarOrdemDeServico;Orcamentacao -> Oficina
+Politica;P5;Quando todos ServicoExecutado completos -> FinalizarOrdemDeServico;Oficina
+Politica;P6;Reserva de pecas NAO ocorre na criacao da OS;Regra geral
+Politica;P7;Quando ReservarPeca -> verificar disponibilidade - se insuficiente bloquear;Estoque
+Politica;P8;Quando OS cancelada apos aprovacao -> LiberarReserva das pecas;Oficina -> Estoque
+Politica;P9;Quando EstoqueBaixo -> gerar alerta para administrador;Estoque

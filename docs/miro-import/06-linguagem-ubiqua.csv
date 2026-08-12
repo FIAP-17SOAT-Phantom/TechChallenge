@@ -1,0 +1,15 @@
+﻿Termo;Definicao;Contexto
+Ordem de Servico (OS);Documento que registra todo o atendimento do recebimento a entrega do veiculo;Oficina
+Diagnostico;Avaliacao tecnica do mecanico que identifica servicos e pecas necessarios;Oficina
+Orcamento;Proposta de valor com servicos e pecas enviada ao cliente para aprovacao;Orcamentacao
+Aprovacao;Aceite formal do cliente ao orcamento que dispara reserva de pecas e inicio da execucao;Orcamentacao
+Renegociacao;Processo onde o cliente rejeita o orcamento mas solicita uma nova proposta;Orcamentacao
+Reserva;Separacao de pecas no estoque vinculada a uma OS aprovada - peca ainda nao foi usada;Estoque
+Consumo / Baixa;Utilizacao efetiva da peca durante a execucao do servico;Estoque
+Status da OS;Estado atual: Recebida - Em Diagnostico - Aguardando Aprovacao - Em Execucao - Finalizada - Entregue;Oficina
+Cancelamento;Encerramento da OS sem conclusao dos servicos;Oficina
+Atendente;Profissional que recebe o cliente e cria a OS;Atendimento
+Mecanico;Profissional tecnico responsavel pelo diagnostico e execucao;Oficina
+Veiculo;Automovel do cliente vinculado a uma ou mais OS;Atendimento
+Peca / Insumo;Material necessario para a execucao de um servico;Estoque
+Servico;Tipo de trabalho oferecido pela oficina (ex: troca de oleo, alinhamento);Catalogo

@@ -1,0 +1,7 @@
+﻿Tipo;Texto;Bounded Context
+Agregado;Cliente;Atendimento
+Agregado;Veiculo;Atendimento
+Agregado;OrdemDeServico;Oficina
+Agregado;Orcamento;Orcamentacao
+Agregado;Peca;Estoque
+Agregado;Servico;Catalogo de Servicos

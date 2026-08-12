@@ -1,0 +1,22 @@
+﻿Tipo;Texto;Bounded Context
+Comando;CadastrarCliente;Atendimento
+Comando;CadastrarVeiculo;Atendimento
+Comando;ReceberVeiculo;Atendimento
+Comando;CriarOrdemDeServico;Oficina
+Comando;RegistrarDiagnostico;Oficina
+Comando;GerarOrcamento;Orcamentacao
+Comando;EnviarOrcamentoParaCliente;Orcamentacao
+Comando;AprovarOrcamento;Orcamentacao
+Comando;RejeitarOrcamento;Orcamentacao
+Comando;SolicitarRevisaoDeOrcamento;Orcamentacao
+Comando;CancelarOrdemDeServico;Oficina
+Comando;IniciarExecucao;Oficina
+Comando;RegistrarServicoExecutado;Oficina
+Comando;FinalizarOrdemDeServico;Oficina
+Comando;RegistrarEntregaVeiculo;Oficina
+Comando;CadastrarPeca;Estoque
+Comando;AtualizarEstoque (entrada);Estoque
+Comando;ReservarPeca;Estoque
+Comando;LiberarReserva;Estoque
+Comando;ConsumirPeca (baixa);Estoque
+Comando;ConsultarDisponibilidade;Estoque

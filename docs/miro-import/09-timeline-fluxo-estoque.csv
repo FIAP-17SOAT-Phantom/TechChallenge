@@ -1,0 +1,7 @@
+﻿Ordem;Ator;Comando (azul);Evento (laranja);Agregado;Politica
+1;Admin;CadastrarPeca;PecaCadastrada;Peca;
+2;Admin;AtualizarEstoque;EstoqueAtualizado;Peca;
+3;Sistema;ReservarPeca;PecaReservada;Peca;P7
+4;Sistema;LiberarReserva;ReservaLiberada;Peca;P8
+5;Mecanico;ConsumirPeca;PecaConsumida;Peca;
+6;Sistema;(automatico);EstoqueBaixo;Peca;P9

@@ -1,0 +1,6 @@
+﻿Bounded Context;Responsabilidade;Cor sugerida
+Atendimento;Cadastro de clientes e veiculos, recepcao do veiculo;Verde
+Oficina;Ordem de Servico, diagnostico, execucao, maquina de estados;Azul
+Orcamentacao;Geracao de orcamento, aprovacao/rejeicao/renegociacao;Laranja
+Estoque;Catalogo de pecas/insumos, controle de quantidade, reserva;Roxo
+Catalogo de Servicos;Tipos de servico oferecidos, tempo estimado, preco base;Cinza

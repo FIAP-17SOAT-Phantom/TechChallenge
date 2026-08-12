@@ -1,0 +1,5 @@
+﻿Tipo;Texto;Acoes
+Ator;Atendente;Cadastra cliente, recebe veiculo, cria OS
+Ator;Mecanico;Realiza diagnostico, executa servicos
+Ator;Cliente;Aprova/rejeita orcamento, consulta status
+Ator;Sistema;Transicoes automaticas, reserva de estoque

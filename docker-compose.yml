@@ -1,0 +1,32 @@
+﻿services:
+ api:
+ build:
+ context: ./src
+ dockerfile: OficinaMecanica.API/Dockerfile
+ ports:
+ - "8080:8080"
+ depends_on:
+ db:
+ condition: service_healthy
+ environment:
+ - ASPNETCORE_ENVIRONMENT=Development
+ - ConnectionStrings__DefaultConnection=Host=db;Database=oficina_mecanica;Username=oficina;Password=oficina_dev
+
+ db:
+ image: postgres:16-alpine
+ ports:
+ - "5432:5432"
+ environment:
+ POSTGRES_DB: oficina_mecanica
+ POSTGRES_USER: oficina
+ POSTGRES_PASSWORD: oficina_dev
+ healthcheck:
+ test: ["CMD-SHELL", "pg_isready -U oficina"]
+ interval: 5s
+ timeout: 5s
+ retries: 5
+ volumes:
+ - postgres_data:/var/lib/postgresql/data
+
+volumes:
+ postgres_data:

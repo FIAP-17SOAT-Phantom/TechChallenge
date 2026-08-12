@@ -1,0 +1,16 @@
+﻿Ordem;Ator;Comando (azul);Evento (laranja);Agregado;Politica
+1;Atendente;CadastrarCliente;ClienteCadastrado;Cliente;
+2;Atendente;CadastrarVeiculo;VeiculoCadastrado;Veiculo;
+3;Atendente;ReceberVeiculo;VeiculoRecebido;Veiculo;
+4;Atendente;CriarOrdemDeServico;OrdemDeServicoCriada;OrdemDeServico;
+5;Mecanico;RegistrarDiagnostico;DiagnosticoRealizado;OrdemDeServico;
+6;Sistema;GerarOrcamento;OrcamentoGerado;Orcamento;
+7;Sistema;EnviarOrcamentoParaCliente;OrcamentoEnviadoParaCliente;Orcamento;
+8;Cliente;AprovarOrcamento;OrcamentoAprovado;Orcamento;P1 P2
+9;Cliente;RejeitarOrcamento;OrcamentoRejeitado;Orcamento;P3 ou P4
+10;Cliente;SolicitarRevisaoDeOrcamento;OrcamentoRevisado;Orcamento;P3
+11;Cliente/Sistema;CancelarOrdemDeServico;OrdemDeServicoCancelada;OrdemDeServico;P4 P8
+12;Mecanico;IniciarExecucao;ExecucaoIniciada;OrdemDeServico;
+13;Mecanico;RegistrarServicoExecutado;ServicoExecutado;OrdemDeServico;P5
+14;Sistema;FinalizarOrdemDeServico;OrdemDeServicoFinalizada;OrdemDeServico;P5
+15;Atendente;RegistrarEntregaVeiculo;VeiculoEntregue;OrdemDeServico;

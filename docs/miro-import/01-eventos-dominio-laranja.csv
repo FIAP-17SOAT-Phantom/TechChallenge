@@ -1,0 +1,22 @@
+﻿Tipo;Texto;Bounded Context
+Evento;ClienteCadastrado;Atendimento
+Evento;VeiculoCadastrado;Atendimento
+Evento;VeiculoRecebido;Atendimento
+Evento;OrdemDeServicoCriada;Oficina
+Evento;DiagnosticoRealizado;Oficina
+Evento;OrcamentoGerado;Orcamentacao
+Evento;OrcamentoEnviadoParaCliente;Orcamentacao
+Evento;OrcamentoAprovado;Orcamentacao
+Evento;OrcamentoRejeitado;Orcamentacao
+Evento;OrcamentoRevisado (renegociacao);Orcamentacao
+Evento;OrdemDeServicoCancelada;Oficina
+Evento;ExecucaoIniciada;Oficina
+Evento;ServicoExecutado;Oficina
+Evento;OrdemDeServicoFinalizada;Oficina
+Evento;VeiculoEntregue;Oficina
+Evento;PecaCadastrada;Estoque
+Evento;EstoqueAtualizado (entrada);Estoque
+Evento;PecaReservada;Estoque
+Evento;ReservaLiberada;Estoque
+Evento;PecaConsumida;Estoque
+Evento;EstoqueBaixo (alerta);Estoque
