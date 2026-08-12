@@ -1,4 +1,4 @@
-﻿# Tech Challenge - Fase 1 | Grupo Phantom
+﻿# Tech Challenge | Grupo Phantom
 
 ## Sistema Integrado de Atendimento e Execucao de Servicos (Oficina Mecanica)
 
@@ -156,12 +156,11 @@ Tech_Challenge_Fase1_FIAP/
 
 **Phantom** | FIAP - Pos-graduacao em Software Architecture | Turma 17SOAT
 
-| Membro | Discord |
+| Membro | RM |
 |--------|---------|
-| (nome) | (user) |
-| (nome) | (user) |
-| (nome) | (user) |
-| (nome) | (user) |
+| Gyovanna de Oliveira Carvalho | 376627 |
+| Bruno Russo Ribeiro da Silva  |        |
+
 
 ---
 
