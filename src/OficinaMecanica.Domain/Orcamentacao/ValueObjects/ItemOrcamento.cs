@@ -10,10 +10,12 @@ public class ItemOrcamento : ValueObject
  public int Quantidade { get; }
  public decimal ValorUnitario { get; }
  public decimal ValorTotal => Quantidade * ValorUnitario;
+ public Guid? PecaId { get; }
+ public Guid? ServicoId { get; }
 
  private ItemOrcamento() { }
 
- public ItemOrcamento(string descricao, TipoItem tipo, int quantidade, decimal valorUnitario)
+ public ItemOrcamento(string descricao, TipoItem tipo, int quantidade, decimal valorUnitario, Guid? pecaId = null, Guid? servicoId = null)
  {
  if (string.IsNullOrWhiteSpace(descricao))
  throw new ArgumentException("Descricao do item e obrigatoria");
@@ -26,6 +28,8 @@ public class ItemOrcamento : ValueObject
  Tipo = tipo;
  Quantidade = quantidade;
  ValorUnitario = valorUnitario;
+ PecaId = pecaId;
+ ServicoId = servicoId;
  }
 
  protected override IEnumerable<object?> GetEqualityComponents()
@@ -34,5 +38,7 @@ public class ItemOrcamento : ValueObject
  yield return Tipo;
  yield return Quantidade;
  yield return ValorUnitario;
+ yield return PecaId;
+ yield return ServicoId;
  }
 }

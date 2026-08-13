@@ -29,6 +29,11 @@ public class Veiculo : AggregateRoot
  ClienteId = clienteId;
  }
 
+ /// <summary>
+ /// Regra de dominio: verifica se o veiculo pertence ao cliente informado.
+ /// </summary>
+ public bool PertenceAoCliente(Guid clienteId) => ClienteId == clienteId;
+
  public void Atualizar(string marca, string modelo, int ano)
  {
  Marca = marca;
