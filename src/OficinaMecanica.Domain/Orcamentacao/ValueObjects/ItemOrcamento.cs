@@ -5,7 +5,7 @@ namespace OficinaMecanica.Domain.Orcamentacao.ValueObjects;
 
 public class ItemOrcamento : ValueObject
 {
- public string Descricao { get; }
+ public string Descricao { get; } = null!;
  public TipoItem Tipo { get; }
  public int Quantidade { get; }
  public decimal ValorUnitario { get; }
@@ -15,6 +15,13 @@ public class ItemOrcamento : ValueObject
 
  public ItemOrcamento(string descricao, TipoItem tipo, int quantidade, decimal valorUnitario)
  {
+ if (string.IsNullOrWhiteSpace(descricao))
+ throw new ArgumentException("Descricao do item e obrigatoria");
+ if (quantidade <= 0)
+ throw new ArgumentException("Quantidade deve ser maior que zero");
+ if (valorUnitario < 0)
+ throw new ArgumentException("Valor unitario nao pode ser negativo");
+
  Descricao = descricao;
  Tipo = tipo;
  Quantidade = quantidade;

@@ -1,5 +1,6 @@
 ﻿using OficinaMecanica.Domain.Common;
 using OficinaMecanica.Domain.Orcamentacao.Enums;
+using OficinaMecanica.Domain.Orcamentacao.Events;
 using OficinaMecanica.Domain.Orcamentacao.ValueObjects;
 
 namespace OficinaMecanica.Domain.Orcamentacao.Entities;
@@ -21,6 +22,9 @@ public class Orcamento : AggregateRoot
 
  public Orcamento(Guid ordemDeServicoId, int versao, List<ItemOrcamento> itens, string? observacao = null)
  {
+ if (itens is null || itens.Count == 0)
+ throw new ArgumentException("Orcamento deve ter pelo menos um item");
+
  OrdemDeServicoId = ordemDeServicoId;
  Versao = versao;
  Status = StatusOrcamento.Pendente;
@@ -35,6 +39,7 @@ public class Orcamento : AggregateRoot
  return Result.Failure("Orcamento deve estar Pendente para ser enviado");
 
  Status = StatusOrcamento.Enviado;
+ RaiseDomainEvent(new OrcamentoEnviadoEvent(Id, OrdemDeServicoId));
  return Result.Success();
  }
 
@@ -45,6 +50,7 @@ public class Orcamento : AggregateRoot
 
  Status = StatusOrcamento.Aprovado;
  DataAprovacao = DateTime.UtcNow;
+ RaiseDomainEvent(new OrcamentoAprovadoEvent(Id, OrdemDeServicoId));
  return Result.Success();
  }
 
@@ -54,6 +60,7 @@ public class Orcamento : AggregateRoot
  return Result.Failure("Orcamento deve estar Enviado para ser rejeitado");
 
  Status = StatusOrcamento.Rejeitado;
+ RaiseDomainEvent(new OrcamentoRejeitadoEvent(Id, OrdemDeServicoId));
  return Result.Success();
  }
 

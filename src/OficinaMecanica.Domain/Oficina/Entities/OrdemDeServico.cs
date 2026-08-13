@@ -6,7 +6,7 @@ namespace OficinaMecanica.Domain.Oficina.Entities;
 
 public class OrdemDeServico : AggregateRoot
 {
- public string Numero { get; private set; }
+ public string Numero { get; private set; } = null!;
  public Guid ClienteId { get; private set; }
  public Guid VeiculoId { get; private set; }
  public Guid? MecanicoId { get; private set; }
@@ -23,6 +23,9 @@ public class OrdemDeServico : AggregateRoot
 
  public OrdemDeServico(string numero, Guid clienteId, Guid veiculoId)
  {
+ if (string.IsNullOrWhiteSpace(numero))
+ throw new ArgumentException("Numero da OS e obrigatorio");
+
  Numero = numero;
  ClienteId = clienteId;
  VeiculoId = veiculoId;
@@ -46,6 +49,9 @@ public class OrdemDeServico : AggregateRoot
  {
  if (Status != StatusOS.EmDiagnostico)
  return Result.Failure("OS deve estar Em Diagnostico para registrar diagnostico");
+
+ if (string.IsNullOrWhiteSpace(diagnostico))
+ return Result.Failure("Diagnostico nao pode ser vazio");
 
  Diagnostico = diagnostico;
  _itens.Clear();

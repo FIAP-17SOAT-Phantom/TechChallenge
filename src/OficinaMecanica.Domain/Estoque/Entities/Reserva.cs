@@ -15,6 +15,9 @@ public class Reserva : Entity
 
  public Reserva(Guid pecaId, Guid ordemDeServicoId, int quantidade)
  {
+ if (quantidade <= 0)
+ throw new ArgumentException("Quantidade da reserva deve ser maior que zero");
+
  PecaId = pecaId;
  OrdemDeServicoId = ordemDeServicoId;
  Quantidade = quantidade;
@@ -22,6 +25,21 @@ public class Reserva : Entity
  Status = StatusReserva.Ativa;
  }
 
- public void Consumir() => Status = StatusReserva.Consumida;
- public void Liberar() => Status = StatusReserva.Liberada;
+ public Result Consumir()
+ {
+ if (Status != StatusReserva.Ativa)
+ return Result.Failure("Apenas reservas ativas podem ser consumidas");
+
+ Status = StatusReserva.Consumida;
+ return Result.Success();
+ }
+
+ public Result Liberar()
+ {
+ if (Status != StatusReserva.Ativa)
+ return Result.Failure("Apenas reservas ativas podem ser liberadas");
+
+ Status = StatusReserva.Liberada;
+ return Result.Success();
+ }
 }

@@ -3,11 +3,11 @@ using OficinaMecanica.Domain.Common;
 
 namespace OficinaMecanica.Domain.Atendimento.Entities;
 
-public class Veiculo : Entity
+public class Veiculo : AggregateRoot
 {
- public Placa Placa { get; private set; }
- public string Marca { get; private set; }
- public string Modelo { get; private set; }
+ public Placa Placa { get; private set; } = null!;
+ public string Marca { get; private set; } = null!;
+ public string Modelo { get; private set; } = null!;
  public int Ano { get; private set; }
  public Guid ClienteId { get; private set; }
 
@@ -15,6 +15,13 @@ public class Veiculo : Entity
 
  public Veiculo(Placa placa, string marca, string modelo, int ano, Guid clienteId)
  {
+ if (string.IsNullOrWhiteSpace(marca))
+ throw new ArgumentException("Marca e obrigatoria");
+ if (string.IsNullOrWhiteSpace(modelo))
+ throw new ArgumentException("Modelo e obrigatorio");
+ if (ano < 1900 || ano > DateTime.UtcNow.Year + 2)
+ throw new ArgumentException("Ano invalido");
+
  Placa = placa;
  Marca = marca;
  Modelo = modelo;
