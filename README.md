@@ -159,7 +159,7 @@ Tech_Challenge_Fase1_FIAP/
 | Membro | RM |
 |--------|---------|
 | Gyovanna de Oliveira Carvalho | 376627 |
-| Bruno Russo Ribeiro da Silva  |        |
+| Bruno Russo Ribeiro da Silva  | 376557 |
 
 
 ---
