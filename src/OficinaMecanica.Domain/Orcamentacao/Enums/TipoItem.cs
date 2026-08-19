@@ -2,6 +2,6 @@
 
 public enum TipoItem
 {
- Servico = 1,
- Peca = 2
+    Servico = 1,
+    Peca = 2
 }

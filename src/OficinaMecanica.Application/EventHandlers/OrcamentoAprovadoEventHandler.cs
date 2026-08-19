@@ -19,48 +19,48 @@ namespace OficinaMecanica.Application.EventHandlers;
 /// </summary>
 public sealed class OrcamentoAprovadoEventHandler : INotificationHandler<OrcamentoAprovadoEvent>
 {
- private readonly IOrcamentoRepository _orcamentoRepository;
- private readonly IOrdemDeServicoRepository _osRepository;
- private readonly IPecaRepository _pecaRepository;
- private readonly IUnitOfWork _unitOfWork;
+    private readonly IOrcamentoRepository _orcamentoRepository;
+    private readonly IOrdemDeServicoRepository _osRepository;
+    private readonly IPecaRepository _pecaRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
- public OrcamentoAprovadoEventHandler(
- IOrcamentoRepository orcamentoRepository,
- IOrdemDeServicoRepository osRepository,
- IPecaRepository pecaRepository,
- IUnitOfWork unitOfWork)
- {
- _orcamentoRepository = orcamentoRepository;
- _osRepository = osRepository;
- _pecaRepository = pecaRepository;
- _unitOfWork = unitOfWork;
- }
+    public OrcamentoAprovadoEventHandler(
+    IOrcamentoRepository orcamentoRepository,
+    IOrdemDeServicoRepository osRepository,
+    IPecaRepository pecaRepository,
+    IUnitOfWork unitOfWork)
+    {
+        _orcamentoRepository = orcamentoRepository;
+        _osRepository = osRepository;
+        _pecaRepository = pecaRepository;
+        _unitOfWork = unitOfWork;
+    }
 
- public async Task Handle(OrcamentoAprovadoEvent notification, CancellationToken cancellationToken)
- {
- // P2: Mudar status da OS para EmExecucao
- var os = await _osRepository.GetByIdAsync(notification.OrdemDeServicoId, cancellationToken)
- ?? throw new InvalidOperationException($"OS {notification.OrdemDeServicoId} nao encontrada");
+    public async Task Handle(OrcamentoAprovadoEvent notification, CancellationToken cancellationToken)
+    {
+        // P2: Mudar status da OS para EmExecucao
+        var os = await _osRepository.GetByIdAsync(notification.OrdemDeServicoId, cancellationToken)
+        ?? throw new InvalidOperationException($"OS {notification.OrdemDeServicoId} nao encontrada");
 
- os.IniciarExecucao();
- _osRepository.Update(os);
+        os.IniciarExecucao();
+        _osRepository.Update(os);
 
- // P1: Reservar pecas no estoque
- var orcamento = await _orcamentoRepository.GetByIdAsync(notification.OrcamentoId, cancellationToken)
- ?? throw new InvalidOperationException($"Orcamento {notification.OrcamentoId} nao encontrado");
+        // P1: Reservar pecas no estoque
+        var orcamento = await _orcamentoRepository.GetByIdAsync(notification.OrcamentoId, cancellationToken)
+        ?? throw new InvalidOperationException($"Orcamento {notification.OrcamentoId} nao encontrado");
 
- foreach (var item in orcamento.Itens.Where(i => i.Tipo == TipoItem.Peca && i.PecaId.HasValue))
- {
- var peca = await _pecaRepository.GetByIdAsync(item.PecaId!.Value, cancellationToken);
- if (peca is null) continue;
+        foreach (var item in orcamento.Itens.Where(i => i.Tipo == TipoItem.Peca && i.PecaId.HasValue))
+        {
+            var peca = await _pecaRepository.GetByIdAsync(item.PecaId!.Value, cancellationToken);
+            if (peca is null) continue;
 
- var reservaResult = peca.Reservar(notification.OrdemDeServicoId, item.Quantidade);
- if (reservaResult.IsFailure)
- throw new InvalidOperationException($"Falha ao reservar peca {peca.Nome}: {reservaResult.Error}");
+            var reservaResult = peca.Reservar(notification.OrdemDeServicoId, item.Quantidade);
+            if (reservaResult.IsFailure)
+                throw new InvalidOperationException($"Falha ao reservar peca {peca.Nome}: {reservaResult.Error}");
 
- _pecaRepository.Update(peca);
- }
+            _pecaRepository.Update(peca);
+        }
 
- await _unitOfWork.SaveChangesAsync(cancellationToken);
- }
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
 }

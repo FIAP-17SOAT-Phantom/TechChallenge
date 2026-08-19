@@ -12,29 +12,29 @@ namespace OficinaMecanica.Application.UseCases.Orcamentacao.Commands;
 /// </summary>
 public sealed class AprovarOrcamentoHandler : IRequestHandler<AprovarOrcamentoCommand, Result>
 {
- private readonly IOrcamentoRepository _orcamentoRepository;
- private readonly IUnitOfWork _unitOfWork;
+    private readonly IOrcamentoRepository _orcamentoRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
- public AprovarOrcamentoHandler(IOrcamentoRepository orcamentoRepository, IUnitOfWork unitOfWork)
- {
- _orcamentoRepository = orcamentoRepository;
- _unitOfWork = unitOfWork;
- }
+    public AprovarOrcamentoHandler(IOrcamentoRepository orcamentoRepository, IUnitOfWork unitOfWork)
+    {
+        _orcamentoRepository = orcamentoRepository;
+        _unitOfWork = unitOfWork;
+    }
 
- public async Task<Result> Handle(AprovarOrcamentoCommand request, CancellationToken cancellationToken)
- {
- var orcamento = await _orcamentoRepository.GetByIdAsync(request.OrcamentoId, cancellationToken);
- if (orcamento is null)
- return Result.Failure("Orcamento nao encontrado");
+    public async Task<Result> Handle(AprovarOrcamentoCommand request, CancellationToken cancellationToken)
+    {
+        var orcamento = await _orcamentoRepository.GetByIdAsync(request.OrcamentoId, cancellationToken);
+        if (orcamento is null)
+            return Result.Failure("Orcamento nao encontrado");
 
- // Transicao de estado no aggregate (emite OrcamentoAprovadoEvent)
- var result = orcamento.Aprovar();
- if (result.IsFailure)
- return result;
+        // Transicao de estado no aggregate (emite OrcamentoAprovadoEvent)
+        var result = orcamento.Aprovar();
+        if (result.IsFailure)
+            return result;
 
- _orcamentoRepository.Update(orcamento);
- await _unitOfWork.SaveChangesAsync(cancellationToken);
+        _orcamentoRepository.Update(orcamento);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
- return Result.Success();
- }
+        return Result.Success();
+    }
 }

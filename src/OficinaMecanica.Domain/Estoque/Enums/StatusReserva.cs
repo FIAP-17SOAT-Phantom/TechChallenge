@@ -2,7 +2,7 @@
 
 public enum StatusReserva
 {
- Ativa = 1,
- Consumida = 2,
- Liberada = 3
+    Ativa = 1,
+    Consumida = 2,
+    Liberada = 3
 }
