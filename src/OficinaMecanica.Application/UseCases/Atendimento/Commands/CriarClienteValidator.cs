@@ -14,9 +14,11 @@ public sealed class CriarClienteValidator : AbstractValidator<CriarClienteComman
         .NotEmpty().WithMessage("CPF e obrigatorio");
 
         RuleFor(x => x.Telefone)
-        .NotEmpty().WithMessage("Telefone e obrigatorio");
+        .NotEmpty().WithMessage("Telefone e obrigatorio")
+        .MaximumLength(20).WithMessage("Telefone deve ter no maximo 20 caracteres");
 
         RuleFor(x => x.Email)
-        .NotEmpty().WithMessage("Email e obrigatorio");
+        .NotEmpty().WithMessage("Email e obrigatorio")
+        .MaximumLength(255).WithMessage("Email deve ter no maximo 255 caracteres");
     }
 }

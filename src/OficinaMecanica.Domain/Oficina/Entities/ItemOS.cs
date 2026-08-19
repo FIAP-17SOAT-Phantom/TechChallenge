@@ -13,6 +13,12 @@ public class ItemOS : ValueObject
 
     public ItemOS(Guid servicoId, Guid? pecaId, int quantidade, string? observacao = null)
     {
+        if (servicoId == Guid.Empty)
+            throw new ArgumentException("Servico e obrigatorio");
+
+        if (quantidade <= 0)
+            throw new ArgumentException("Quantidade deve ser maior que zero");
+
         ServicoId = servicoId;
         PecaId = pecaId;
         Quantidade = quantidade;

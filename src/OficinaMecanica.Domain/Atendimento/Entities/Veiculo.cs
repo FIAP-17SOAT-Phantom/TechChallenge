@@ -36,6 +36,15 @@ public class Veiculo : AggregateRoot
 
     public void Atualizar(string marca, string modelo, int ano)
     {
+        if (string.IsNullOrWhiteSpace(marca))
+            throw new ArgumentException("Marca e obrigatoria");
+
+        if (string.IsNullOrWhiteSpace(modelo))
+            throw new ArgumentException("Modelo e obrigatorio");
+
+        if (ano < 1900 || ano > DateTime.UtcNow.Year + 2)
+            throw new ArgumentException("Ano invalido");
+
         Marca = marca;
         Modelo = modelo;
         Ano = ano;

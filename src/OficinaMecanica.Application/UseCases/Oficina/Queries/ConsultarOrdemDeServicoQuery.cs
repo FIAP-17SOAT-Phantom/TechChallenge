@@ -5,13 +5,6 @@ namespace OficinaMecanica.Application.UseCases.Oficina.Queries;
 
 public sealed record ConsultarOrdemDeServicoQuery(Guid OrdemDeServicoId) : IRequest<Result<OrdemDeServicoDto>>;
 
-public sealed record OrdemDeServicoDto(
- Guid Id,
- string Numero,
- string Status,
- Guid ClienteId,
- Guid VeiculoId,
- Guid? MecanicoId,
- DateTime DataAbertura,
- DateTime? DataFinalizacao,
- string? Diagnostico);
+public sealed record OrdemDeServicoDto(Guid Id, string Numero, string Status, Guid ClienteId, Guid VeiculoId, Guid? MecanicoId, DateTime DataAbertura, DateTime? DataFinalizacao, string? Diagnostico, Guid? OrcamentoId, IReadOnlyList<ItemOrdemDeServicoDto> Itens);
+
+public sealed record ItemOrdemDeServicoDto(Guid ServicoId, Guid? PecaId, int Quantidade, string? Observacao);

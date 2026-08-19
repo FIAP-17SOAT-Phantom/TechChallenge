@@ -23,10 +23,16 @@ public class Peca : AggregateRoot
     {
         if (string.IsNullOrWhiteSpace(nome))
             throw new ArgumentException("Nome da peca e obrigatorio");
+
+        if (string.IsNullOrWhiteSpace(codigo))
+            throw new ArgumentException("Codigo da peca e obrigatorio");
+
         if (precoUnitario < 0)
             throw new ArgumentException("Preco unitario nao pode ser negativo");
+
         if (quantidadeEmEstoque < 0)
             throw new ArgumentException("Quantidade em estoque nao pode ser negativa");
+
         if (quantidadeMinima < 0)
             throw new ArgumentException("Quantidade minima nao pode ser negativa");
 
@@ -57,6 +63,15 @@ public class Peca : AggregateRoot
 
     public void Atualizar(string nome, string descricao, decimal precoUnitario, int quantidadeMinima)
     {
+        if (string.IsNullOrWhiteSpace(nome))
+            throw new ArgumentException("Nome da peca e obrigatorio");
+
+        if (precoUnitario < 0)
+            throw new ArgumentException("Preco unitario nao pode ser negativo");
+
+        if (quantidadeMinima < 0)
+            throw new ArgumentException("Quantidade minima nao pode ser negativa");
+
         Nome = nome;
         Descricao = descricao;
         PrecoUnitario = precoUnitario;

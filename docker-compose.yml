@@ -1,32 +1,37 @@
-﻿services:
- api:
- build:
- context: ./src
- dockerfile: OficinaMecanica.API/Dockerfile
- ports:
- - "8080:8080"
- depends_on:
- db:
- condition: service_healthy
- environment:
- - ASPNETCORE_ENVIRONMENT=Development
- - ConnectionStrings__DefaultConnection=Host=db;Database=oficina_mecanica;Username=oficina;Password=oficina_dev
+services:
+  api:
+    build:
+      context: ./src
+      dockerfile: OficinaMecanica.API/Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Host=db;Database=oficina_mecanica;Username=oficina;Password=oficina_dev
+      Jwt__Secret: ${JWT_SECRET:?Defina JWT_SECRET com pelo menos 32 caracteres}
+      Authentication__SeedUsers__0__Email: ${ADMIN_EMAIL:-admin@oficina.local}
+      Authentication__SeedUsers__0__Password: ${ADMIN_PASSWORD:?Defina ADMIN_PASSWORD atendendo a politica de senha}
+      Authentication__SeedUsers__0__Role: Admin
 
- db:
- image: postgres:16-alpine
- ports:
- - "5432:5432"
- environment:
- POSTGRES_DB: oficina_mecanica
- POSTGRES_USER: oficina
- POSTGRES_PASSWORD: oficina_dev
- healthcheck:
- test: ["CMD-SHELL", "pg_isready -U oficina"]
- interval: 5s
- timeout: 5s
- retries: 5
- volumes:
- - postgres_data:/var/lib/postgresql/data
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: oficina_mecanica
+      POSTGRES_USER: oficina
+      POSTGRES_PASSWORD: oficina_dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oficina -d oficina_mecanica"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
 volumes:
- postgres_data:
+  postgres_data:

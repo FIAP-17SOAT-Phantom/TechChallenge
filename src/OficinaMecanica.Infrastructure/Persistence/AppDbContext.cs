@@ -1,6 +1,8 @@
 ﻿using MediatR;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Data;
 using OficinaMecanica.Application.Common.Interfaces;
 using OficinaMecanica.Domain.Atendimento.Entities;
 using OficinaMecanica.Domain.CatalogoServicos.Entities;
@@ -8,6 +10,7 @@ using OficinaMecanica.Domain.Common;
 using OficinaMecanica.Domain.Estoque.Entities;
 using OficinaMecanica.Domain.Oficina.Entities;
 using OficinaMecanica.Domain.Orcamentacao.Entities;
+using OficinaMecanica.Infrastructure.Identity;
 
 namespace OficinaMecanica.Infrastructure.Persistence;
 
@@ -17,7 +20,7 @@ namespace OficinaMecanica.Infrastructure.Persistence;
 /// Despacha Domain Events APOS o SaveChanges para manter
 /// a consistencia entre aggregates via MediatR notifications.
 /// </summary>
-public class AppDbContext : DbContext, IUnitOfWork
+public class AppDbContext : IdentityDbContext<UsuarioSistema>, IUnitOfWork
 {
     private readonly IMediator _mediator;
     private readonly ILogger<AppDbContext> _logger;
@@ -84,5 +87,22 @@ public class AppDbContext : DbContext, IUnitOfWork
         }
 
         return result;
+    }
+
+    public async Task<T> ExecuteInTransactionAsync<T>(Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+
+        try
+        {
+            var result = await operation(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return result;
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 }

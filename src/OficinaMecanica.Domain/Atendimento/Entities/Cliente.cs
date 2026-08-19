@@ -28,6 +28,9 @@ public class Cliente : AggregateRoot
         if (string.IsNullOrWhiteSpace(nome))
             throw new ArgumentException("Nome e obrigatorio");
 
+        if (string.IsNullOrWhiteSpace(telefone))
+            throw new ArgumentException("Telefone e obrigatorio");
+
         Nome = nome;
         Telefone = telefone;
         Email = email;

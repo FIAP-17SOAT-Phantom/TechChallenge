@@ -40,6 +40,9 @@ public class OrdemDeServico : AggregateRoot
         if (Status != StatusOS.Recebida)
             return Result.Failure("OS deve estar com status Recebida para iniciar diagnostico");
 
+        if (mecanicoId == Guid.Empty)
+            return Result.Failure("Mecanico e obrigatorio");
+
         MecanicoId = mecanicoId;
         Status = StatusOS.EmDiagnostico;
         return Result.Success();
@@ -52,6 +55,9 @@ public class OrdemDeServico : AggregateRoot
 
         if (string.IsNullOrWhiteSpace(diagnostico))
             return Result.Failure("Diagnostico nao pode ser vazio");
+
+        if (itens is null || itens.Count == 0)
+            return Result.Failure("Diagnostico deve possuir pelo menos um item");
 
         Diagnostico = diagnostico;
         _itens.Clear();

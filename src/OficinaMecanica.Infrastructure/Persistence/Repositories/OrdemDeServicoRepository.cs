@@ -41,7 +41,10 @@ public class OrdemDeServicoRepository : IOrdemDeServicoRepository
     .OrderByDescending(os => os.DataAbertura)
     .Skip((page - 1) * pageSize)
     .Take(pageSize)
-    .ToListAsync(cancellationToken);
+        .ToListAsync(cancellationToken);
+
+    public async Task<bool> ExistsByVeiculoIdAsync(Guid veiculoId, CancellationToken cancellationToken = default)
+    => await _context.OrdensDeServico.AnyAsync(os => os.VeiculoId == veiculoId, cancellationToken);
 
     /// <summary>
     /// Gera proximo numero sequencial para OS.
