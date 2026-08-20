@@ -31,6 +31,8 @@ public class OrcamentoRepository : IOrcamentoRepository
         return maxVersao ?? 0;
     }
 
+    public async Task<IReadOnlyList<Orcamento>> GetPagedByClienteIdAsync(Guid clienteId, int page, int pageSize, CancellationToken cancellationToken = default) => await _context.Orcamentos.Where(orcamento => _context.OrdensDeServico.Any(ordemDeServico => ordemDeServico.Id == orcamento.OrdemDeServicoId && ordemDeServico.ClienteId == clienteId)).Include(orcamento => orcamento.Itens).AsNoTracking().OrderByDescending(orcamento => orcamento.DataCriacao).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+
     public async Task AddAsync(Orcamento entity, CancellationToken cancellationToken = default)
     => await _context.Orcamentos.AddAsync(entity, cancellationToken);
 

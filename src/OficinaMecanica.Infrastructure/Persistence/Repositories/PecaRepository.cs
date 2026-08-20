@@ -29,6 +29,10 @@ public class PecaRepository : IPecaRepository
     .AsNoTracking()
     .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Peca>> GetPagedAsync(bool somenteEstoqueBaixo, int page, int pageSize, CancellationToken cancellationToken = default) => await _context.Pecas.Where(peca => !somenteEstoqueBaixo || peca.QuantidadeEmEstoque - peca.QuantidadeReservada <= peca.QuantidadeMinima).AsNoTracking().OrderBy(peca => peca.Nome).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+
+    public async Task<bool> HasReferencesAsync(Guid pecaId, CancellationToken cancellationToken = default) => await _context.Orcamentos.AnyAsync(orcamento => orcamento.Itens.Any(item => item.PecaId == pecaId), cancellationToken) || await _context.OrdensDeServico.AnyAsync(ordemDeServico => ordemDeServico.Itens.Any(item => item.PecaId == pecaId), cancellationToken) || await _context.AlertasEstoque.AnyAsync(alerta => alerta.PecaId == pecaId, cancellationToken);
+
     public async Task AddAsync(Peca entity, CancellationToken cancellationToken = default)
     => await _context.Pecas.AddAsync(entity, cancellationToken);
 

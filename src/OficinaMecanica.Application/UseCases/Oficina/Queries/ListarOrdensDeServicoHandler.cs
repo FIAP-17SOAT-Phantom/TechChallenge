@@ -15,15 +15,15 @@ public sealed class ListarOrdensDeServicoHandler : IRequestHandler<ListarOrdensD
     public async Task<IReadOnlyList<OrdemDeServicoDto>> Handle(ListarOrdensDeServicoQuery request, CancellationToken cancellationToken)
     {
         var ordensDeServico = request.ClienteId.HasValue
-            ? await _ordemDeServicoRepository.GetByClienteIdAsync(request.ClienteId.Value, cancellationToken)
+            ? await _ordemDeServicoRepository.GetPagedByClienteIdAsync(request.ClienteId.Value, request.Status, request.Pagina, request.TamanhoPagina, cancellationToken)
             : request.Status.HasValue
                 ? await _ordemDeServicoRepository.GetByStatusAsync(request.Status.Value, cancellationToken)
                 : await _ordemDeServicoRepository.GetAllAsync(request.Pagina, request.TamanhoPagina, cancellationToken);
 
         return ordensDeServico.Select(ordemDeServico =>
         {
-            var itens = ordemDeServico.Itens.Select(item => new ItemOrdemDeServicoDto(item.ServicoId, item.PecaId, item.Quantidade, item.Observacao)).ToList();
-            return new OrdemDeServicoDto(ordemDeServico.Id, ordemDeServico.Numero, ordemDeServico.Status.ToString(), ordemDeServico.ClienteId, ordemDeServico.VeiculoId, ordemDeServico.MecanicoId, ordemDeServico.DataAbertura, ordemDeServico.DataFinalizacao, ordemDeServico.Diagnostico, ordemDeServico.OrcamentoId, itens);
+            var itens = ordemDeServico.Itens.Select(item => new ItemOrdemDeServicoDto(item.ServicoId, item.PecaId, item.Quantidade, item.Observacao, item.Executado, item.DataExecucao)).ToList();
+            return new OrdemDeServicoDto(ordemDeServico.Id, ordemDeServico.Numero, ordemDeServico.Status.ToString(), ordemDeServico.ClienteId, ordemDeServico.VeiculoId, ordemDeServico.MecanicoId, ordemDeServico.DataAbertura, ordemDeServico.DataInicioExecucao, ordemDeServico.DataFinalizacao, ordemDeServico.Diagnostico, ordemDeServico.OrcamentoId, itens);
         }).ToList();
     }
 }

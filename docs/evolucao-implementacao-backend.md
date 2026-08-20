@@ -733,3 +733,430 @@ Os testes de integracao devem utilizar PostgreSQL real com Testcontainers, confo
 - isolamento entre clientes ao consultar OS e orcamentos.
 
 Os diretorios de resultado do Coverlet foram adicionados ao `.gitignore` para impedir o versionamento de artefatos gerados.
+
+---
+
+## Bloco 9 - Indicadores Administrativos
+
+### Tempo medio de execucao
+
+A listagem, o detalhamento e os filtros de OS ja estavam disponiveis, mas o calculo correto do tempo medio exigia registrar o instante em que cada OS entra em execucao.
+
+Foi adicionada a propriedade `DataInicioExecucao` ao aggregate `OrdemDeServico`. Ela e preenchida pelo proprio metodo `IniciarExecucao`, mantendo a transicao e sua data no Domain.
+
+O tempo de execucao de uma OS e calculado por:
+
+```text
+DataFinalizacao - DataInicioExecucao
+```
+
+Nao e utilizada `DataAbertura`, pois isso incluiria recepcao, diagnostico e espera pela aprovacao do cliente, produzindo uma metrica diferente do tempo de execucao.
+
+Foi adicionada uma Query administrativa que retorna:
+
+- tempo medio em minutos;
+- representacao formatada em horas, minutos e segundos;
+- valores nulos quando ainda nao existem OS finalizadas.
+
+Endpoint:
+
+| Metodo | Rota | Acesso | Descricao |
+|--------|------|--------|-----------|
+| GET | `/api/ordens-de-servico/indicadores` | Admin | Retorna indicadores da oficina |
+
+A alteracao de schema e persistida por migration propria.
+
+---
+
+## Bloco 10 - Senha Temporaria e Primeiro Acesso
+
+### Fluxo implementado
+
+A criacao de usuarios deixou de receber uma senha definida pelo administrador. O sistema agora gera uma senha temporaria criptograficamente aleatoria com 16 caracteres e garantia dos grupos exigidos pela politica do Identity:
+
+- letra maiuscula;
+- letra minuscula;
+- numero;
+- caractere especial.
+
+O endpoint administrativo retorna a senha temporaria somente na resposta de criacao:
+
+```json
+{
+  "usuarioId": "identificador-do-usuario",
+  "senhaTemporaria": "valor-gerado"
+}
+```
+
+A senha nao e persistida em texto puro. O ASP.NET Core Identity armazena apenas o hash.
+
+### Primeiro login
+
+O usuario consegue autenticar com a senha temporaria. O token retornado possui:
+
+```json
+{
+  "trocaSenhaObrigatoria": true
+}
+```
+
+e a claim:
+
+```text
+troca_senha_obrigatoria = true
+```
+
+Enquanto essa claim estiver ativa, o pipeline da API responde `403 Forbidden` para qualquer recurso protegido, exceto a troca de senha.
+
+### Alteracao da senha
+
+Endpoint:
+
+| Metodo | Rota | Acesso | Descricao |
+|--------|------|--------|-----------|
+| POST | `/api/auth/alterar-senha` | Usuario autenticado | Substitui a senha temporaria |
+
+Corpo:
+
+```json
+{
+  "senhaAtual": "senha-temporaria",
+  "novaSenha": "nova-senha-forte"
+}
+```
+
+Depois da alteracao, `DeveAlterarSenha` passa para `false`. O usuario deve realizar um novo login para receber um token sem a claim obrigatoria antiga.
+
+### Administrador inicial
+
+O administrador criado pelo seed usa a senha definida externamente em `ADMIN_PASSWORD` e nao e marcado para troca obrigatoria. Isso permite que ele realize o primeiro login e crie os demais usuarios.
+
+### Persistencia
+
+A propriedade `DeveAlterarSenha` foi adicionada ao usuario do Identity e persistida pela migration `AddTrocaSenhaObrigatoria`.
+
+---
+
+## Bloco 11 - Padronizacao das Respostas HTTP
+
+### Problema encontrado
+
+O tratamento de excecoes ja utilizava `ProblemDetails`, mas falhas representadas pelo `Result Pattern` ainda eram convertidas pelos Controllers em objetos anonimos:
+
+```json
+{
+  "erro": "mensagem"
+}
+```
+
+Isso produzia dois formatos de erro diferentes na mesma API.
+
+### Alteracao
+
+Foi criada uma extensao compartilhada para Controllers com respostas padronizadas:
+
+- `BusinessRuleProblem`: `400 Bad Request` para regra ou operacao nao atendida;
+- `NotFoundProblem`: `404 Not Found` para recurso inexistente.
+
+Todos os Controllers de Cliente, Veiculo, Servico, Peca, Ordem de Servico e Orcamento passaram a utilizar essas respostas.
+
+Formato conceitual:
+
+```json
+{
+  "title": "Regra de negocio nao atendida",
+  "status": 400,
+  "detail": "Estoque insuficiente para Filtro.",
+  "instance": "/api/orcamentos/00000000-0000-0000-0000-000000000000/aprovar"
+}
+```
+
+As falhas agora seguem o mesmo padrao utilizado por validacao, autenticacao, autorizacao, conflitos de persistencia e excecoes inesperadas.
+
+### Testes de integracao
+
+A disponibilidade do Docker foi verificada novamente neste bloco. O executavel continua ausente no ambiente, impedindo a criacao e execucao responsavel de testes com Testcontainers e PostgreSQL real.
+
+Os testes de integracao nao foram substituidos por EF Core InMemory ou SQLite, pois esses providers nao reproduzem integralmente transacoes, constraints e comportamento do PostgreSQL usados pelo sistema.
+
+---
+
+## Bloco 12 - Edicao de Itens do Orcamento
+
+O fluxo de geracao continua criando o orcamento a partir dos itens registrados no diagnostico. Foram adicionados casos de uso para complementar manualmente um orcamento antes do envio:
+
+| Metodo | Rota | Acesso | Descricao |
+|--------|------|--------|-----------|
+| POST | `/api/orcamentos/{orcamentoId}/itens/servicos` | Admin, Atendente | Adiciona um servico do catalogo |
+| POST | `/api/orcamentos/{orcamentoId}/itens/pecas` | Admin, Atendente | Adiciona uma peca do estoque |
+
+Os endpoints recebem somente o identificador e a quantidade. Descricao e preco unitario sao obtidos no servidor a partir do cadastro atual, impedindo que o consumidor da API defina valores arbitrarios.
+
+A alteracao e protegida pelo aggregate `Orcamento` e so e permitida no status `Pendente`. Depois que o orcamento e enviado, seus itens e valores ficam congelados. Servicos inativos nao podem ser adicionados.
+
+O `ValorTotal` continua calculado pelo Domain a partir da colecao de itens. Esta mudanca nao exige migration, pois utiliza a colecao de itens ja mapeada.
+
+---
+
+## Bloco 13 - Registro de Servicos Executados
+
+Cada item da Ordem de Servico agora registra individualmente:
+
+- se o servico foi executado;
+- data e hora UTC da execucao.
+
+Endpoint:
+
+| Metodo | Rota | Acesso | Descricao |
+|--------|------|--------|-----------|
+| PATCH | `/api/ordens-de-servico/{ordemDeServicoId}/servicos/{servicoId}/executar` | Admin, Mecanico | Registra a execucao de um item da OS |
+
+O aggregate `OrdemDeServico` valida que:
+
+- a OS esteja em `EmExecucao`;
+- o servico exista entre os itens e ainda esteja pendente;
+- todos os itens tenham sido executados antes da finalizacao.
+
+Quando existem itens repetidos para o mesmo servico, cada chamada marca o primeiro item ainda pendente. Ao registrar a execucao, o Domain emite `ServicoExecutadoEvent`.
+
+A consulta e a listagem de OS passaram a retornar `Executado` e `DataExecucao` em cada item. A migration `AddControleExecucaoItensOS` adiciona esses campos em `ItensOrdemDeServico`; registros anteriores recebem `Executado = false`.
+
+A finalizacao permanece explicita. O endpoint de finalizar continua responsavel por consumir todas as reservas de pecas e concluir a OS na mesma unidade de trabalho, agora somente depois que todos os servicos forem registrados como executados.
+
+---
+
+## Bloco 14 - Alertas Administrativos de Estoque
+
+O `EstoqueBaixoEvent`, que ja era emitido pelo aggregate `Peca` ao reservar uma quantidade que deixa o estoque disponivel menor ou igual ao minimo, agora possui um consumidor real.
+
+O handler cria um alerta persistente ou atualiza o alerta ativo da mesma peca. Essa deduplicacao impede a criacao de varios alertas abertos para a mesma situacao de estoque.
+
+Cada alerta registra:
+
+- peca e nome da peca;
+- quantidade disponivel e quantidade minima no momento do evento;
+- data de criacao;
+- data de visualizacao;
+- data de resolucao.
+
+Endpoints administrativos:
+
+| Metodo | Rota | Acesso | Descricao |
+|--------|------|--------|-----------|
+| GET | `/api/alertas-estoque?somenteAtivos=true` | Admin | Lista alertas ativos ou todo o historico |
+| PATCH | `/api/alertas-estoque/{alertaId}/visualizar` | Admin | Marca o alerta como visualizado |
+| PATCH | `/api/alertas-estoque/{alertaId}/resolver` | Admin | Encerra o alerta |
+
+O alerta e uma consequencia administrativa e e processado depois da persistencia da operacao principal. Uma eventual falha na notificacao e registrada no log e nao desfaz uma reserva de estoque valida. Operacoes que exigem consistencia forte, como aprovacao, reserva e mudanca de estado da OS, continuam no fluxo transacional sincrono.
+
+A migration `AddAlertasEstoque` cria a tabela e os indices utilizados pelas consultas.
+
+---
+
+## Bloco 15 - Correcao de Itens do Orcamento
+
+Um orcamento pendente agora pode ter a quantidade de um item corrigida ou um item removido antes do envio.
+
+| Metodo | Rota | Acesso | Descricao |
+|--------|------|--------|-----------|
+| PUT | `/api/orcamentos/{orcamentoId}/itens/servicos/{servicoId}` | Admin, Atendente | Altera a quantidade do servico |
+| DELETE | `/api/orcamentos/{orcamentoId}/itens/servicos/{servicoId}` | Admin, Atendente | Remove o servico |
+| PUT | `/api/orcamentos/{orcamentoId}/itens/pecas/{pecaId}` | Admin, Atendente | Altera a quantidade da peca |
+| DELETE | `/api/orcamentos/{orcamentoId}/itens/pecas/{pecaId}` | Admin, Atendente | Remove a peca |
+
+O corpo dos endpoints `PUT` recebe apenas `Quantidade`. O preco unitario capturado quando o item foi adicionado e preservado, evitando uma alteracao indireta de preco durante a correcao.
+
+As regras permanecem no aggregate `Orcamento`:
+
+- somente orcamentos `Pendente` podem ser alterados;
+- a quantidade deve ser maior que zero;
+- o item precisa existir;
+- o ultimo item nao pode ser removido, pois um orcamento deve possuir pelo menos um item.
+
+Quando existem itens repetidos com a mesma referencia, a operacao altera ou remove a primeira ocorrencia. Nao houve mudanca de schema neste bloco.
+
+---
+
+## Bloco 16 - Gestao Administrativa de Usuarios
+
+A administracao do ASP.NET Core Identity foi ampliada sem expor `UserManager`, tabelas ou tipos da Infrastructure para a API e Application. Os casos de uso continuam acessando somente `IIdentityService`.
+
+Endpoints:
+
+| Metodo | Rota | Acesso | Descricao |
+|--------|------|--------|-----------|
+| GET | `/api/auth/usuarios` | Admin | Lista usuarios, roles, vinculo e estado |
+| GET | `/api/auth/usuarios/{usuarioId}` | Admin | Consulta um usuario |
+| PATCH | `/api/auth/usuarios/{usuarioId}/status` | Admin | Ativa ou desativa o acesso |
+| POST | `/api/auth/usuarios/{usuarioId}/redefinir-senha` | Admin | Gera uma nova senha temporaria |
+
+A redefinicao de senha:
+
+- usa o mecanismo de reset do Identity;
+- gera uma senha criptograficamente aleatoria;
+- retorna a senha somente na resposta;
+- volta a marcar a troca de senha como obrigatoria.
+
+O estado atual do usuario e consultado no pipeline em cada requisicao autenticada. Dessa forma, desativacao e redefinicao de senha produzem efeito mesmo sobre JWTs emitidos anteriormente. Usuario desativado recebe `401 Unauthorized`; usuario com troca obrigatoria recebe `403 Forbidden`, exceto na rota de alteracao de senha.
+
+O administrador nao pode desativar o proprio usuario. A criacao tambem passou a rejeitar `ClienteId` para roles internas e continua exigindo um cliente existente para a role `Cliente`.
+
+O bloqueio utiliza os campos de lockout ja existentes no schema do Identity, portanto nao exige nova migration.
+
+---
+
+## Bloco 17 - Alinhamento entre Orcamento e Execucao
+
+Os itens registrados no diagnostico representam a proposta tecnica inicial. Como um orcamento pendente pode receber correcoes antes do envio, esses itens nao podem continuar sendo a fonte definitiva da execucao.
+
+Na aprovacao, a lista de servicos da versao aprovada do orcamento agora substitui os itens de execucao da OS antes da mudanca para `EmExecucao`. Assim:
+
+- servicos removidos do orcamento nao precisam ser executados;
+- servicos adicionados ao orcamento passam a exigir registro de execucao;
+- quantidades corrigidas sao refletidas na OS;
+- a finalizacao verifica exatamente os servicos aceitos pelo cliente.
+
+As pecas continuam controladas diretamente pelos itens do orcamento aprovado e pelas reservas de estoque. Um orcamento nao pode ser enviado nem ter o ultimo servico removido se isso o deixar sem servicos.
+
+Essa preparacao participa do mesmo caso de uso transacional que valida estoque, reserva pecas, aprova o orcamento e inicia a OS. Nao houve mudanca de schema.
+
+---
+
+## Bloco 18 - Listagens da Area do Cliente
+
+O cliente nao precisa mais conhecer previamente o identificador de uma OS ou orcamento para acompanhar seus atendimentos.
+
+Endpoints:
+
+| Metodo | Rota | Acesso | Descricao |
+|--------|------|--------|-----------|
+| GET | `/api/ordens-de-servico/minhas?status=&pagina=1&tamanhoPagina=20` | Cliente | Lista somente as OS do usuario autenticado |
+| GET | `/api/orcamentos/meus?pagina=1&tamanhoPagina=20` | Cliente | Lista somente os orcamentos do usuario autenticado |
+
+O `ClienteId` e obtido exclusivamente da claim `cliente_id`. Ele nao pode ser informado pelo consumidor da API nessas rotas. A consulta de orcamentos correlaciona o orcamento com a OS pertencente ao cliente e possui limite maximo de 100 registros por pagina.
+
+Os endpoints individuais existentes continuam disponiveis e mantem a verificacao de propriedade antes de retornar o recurso.
+
+---
+
+## Bloco 19 - Paginacao das Listagens
+
+As listagens que poderiam carregar tabelas completas passaram a aceitar os parametros padronizados:
+
+```text
+pagina = 1
+tamanhoPagina = 20
+```
+
+O tamanho permitido fica entre 1 e 100 registros. Pagina deve ser maior que zero. Parametros invalidos sao tratados pelo pipeline do FluentValidation antes da execucao do handler.
+
+A paginacao foi aplicada a:
+
+- clientes;
+- veiculos por cliente;
+- servicos;
+- pecas e filtro de estoque baixo;
+- usuarios;
+- alertas de estoque;
+- OS administrativas e do cliente;
+- orcamentos do cliente.
+
+As consultas possuem ordenacao deterministica antes de `Skip` e `Take`. Os metodos internos que retornam colecoes completas foram preservados quando necessarios para regras como impedir exclusao de cliente com veiculos ou OS vinculadas. Assim, uma pagina parcial nunca e usada para tomar uma decisao de integridade.
+
+Exemplo:
+
+```http
+GET /api/pecas?somenteEstoqueBaixo=true&pagina=1&tamanhoPagina=20
+```
+
+Este bloco altera somente queries e nao exige migration.
+
+---
+
+## Bloco 20 - Result Tipado e Status HTTP
+
+O `Result` passou a carregar `ErrorType` alem da mensagem. As categorias disponiveis sao:
+
+- `Validation`;
+- `NotFound`;
+- `Conflict`;
+- `BusinessRule`;
+- `Unauthorized`;
+- `Forbidden`.
+
+Falhas sem categoria explicita continuam sendo tratadas como regra de negocio, preservando compatibilidade com os metodos de Domain existentes.
+
+A API possui uma unica conversao de `Result` para `ProblemDetails`:
+
+| ErrorType | HTTP | Uso |
+|-----------|------|-----|
+| Validation | 400 | Dados invalidos |
+| BusinessRule | 400 | Transicao ou regra nao atendida |
+| Unauthorized | 401 | Credenciais invalidas |
+| Forbidden | 403 | Usuario autenticado sem permissao |
+| NotFound | 404 | Recurso inexistente |
+| Conflict | 409 | Duplicidade, vinculo impeditivo ou conflito de estoque |
+
+Todos os Controllers deixaram de escolher manualmente o status com base apenas na mensagem. Casos de uso classificam a falha e `ControllerExtensions.ToProblem` gera a resposta padronizada.
+
+A categoria tambem e preservada quando um handler converte um `Result<T>` em outro tipo de resultado. Por exemplo, estoque insuficiente permanece `Conflict` ao atravessar o fluxo de aprovacao do orcamento.
+
+Esta alteracao nao modifica persistencia e nao exige migration.
+
+---
+
+## Bloco 21 - Resolucao Automatica de Alertas
+
+Ao adicionar estoque, o caso de uso verifica a quantidade disponivel depois da reposicao. Quando ela fica acima da quantidade minima, o alerta ativo da peca e resolvido automaticamente.
+
+A atualizacao da peca e a resolucao do alerta utilizam o mesmo `SaveChangesAsync`. Se o estoque continuar menor ou igual ao minimo, o alerta permanece aberto. A resolucao manual continua disponivel para situacoes administrativas excepcionais.
+
+---
+
+## Bloco 22 - Integridade Relacional
+
+A migration `AddIntegridadeRelacional` adiciona constraints e indices que impedem registros orfaos mesmo quando dados forem manipulados fora dos Controllers.
+
+Relacionamentos protegidos com `Restrict`:
+
+- Veiculo -> Cliente;
+- Ordem de Servico -> Cliente e Veiculo;
+- Orcamento -> Ordem de Servico;
+- Reserva -> Ordem de Servico;
+- Item da OS -> Servico e Peca;
+- Item do orcamento -> Servico e Peca;
+- Alerta de estoque -> Peca;
+- Usuario Cliente -> Cliente.
+
+Indices unicos:
+
+- uma versao por Ordem de Servico em `Orcamentos`;
+- um usuario por `ClienteId`, ignorando valores nulos;
+- um alerta ativo por peca, mantendo historico de alertas resolvidos.
+
+Os casos de uso foram alinhados às constraints:
+
+- criacao de usuario bloqueia segundo acesso para o mesmo cliente;
+- exclusao de cliente bloqueia usuario vinculado;
+- exclusao de peca verifica reservas, itens e alertas antes de remover;
+- conflitos previsiveis retornam `409` pelo Result tipado.
+
+As configuracoes continuam na Infrastructure por Fluent API. Nenhuma entidade de Domain passou a conhecer Entity Framework ou PostgreSQL.
+
+---
+
+## Bloco 23 - Swagger e Guia Final da API
+
+Foi adicionado um `OperationFilter` para complementar automaticamente cada operacao OpenAPI com:
+
+- resumo baseado no caso de uso;
+- roles permitidas ou indicacao de acesso anonimo;
+- respostas `ProblemDetails` para 400, 401, 403, 404 e 409 conforme a rota;
+- exemplos para login, criacao de usuario, troca de senha e cadastro de cliente;
+- ordenacao estavel das operacoes.
+
+O esquema Bearer existente foi preservado. O usuario pode autenticar em `/api/auth/login`, selecionar `Authorize` e informar o token JWT para demonstrar os demais fluxos.
+
+O `README.md` foi reescrito porque seus blocos Markdown estavam corrompidos. O novo guia registra variaveis obrigatorias, execucao Docker/local, primeiro acesso, fluxo completo, testes e links para a documentacao arquitetural.
+
+Com estes blocos, nao restam pendencias funcionais conhecidas no codigo da API da Fase 1. A validacao com PostgreSQL real, Docker Compose e testes de integracao permanece como etapa de ambiente, nao como funcionalidade ausente na API.

@@ -23,12 +23,12 @@ public sealed class ExcluirVeiculoHandler : IRequestHandler<ExcluirVeiculoComman
 
         if (veiculo is null)
         {
-            return Result.Failure("Veiculo nao encontrado");
+            return Result.NotFound("Veiculo nao encontrado");
         }
 
         if (await _ordemDeServicoRepository.ExistsByVeiculoIdAsync(request.VeiculoId, cancellationToken))
         {
-            return Result.Failure("Veiculo possui ordens de servico vinculadas");
+            return Result.Conflict("Veiculo possui ordens de servico vinculadas");
         }
 
         _veiculoRepository.Remove(veiculo);

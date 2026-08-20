@@ -21,7 +21,7 @@ public sealed class RejeitarOrcamentoHandler : IRequestHandler<RejeitarOrcamento
 
         if (orcamento is null)
         {
-            return Result.Failure("Orcamento nao encontrado");
+            return Result.NotFound("Orcamento nao encontrado");
         }
 
         var result = orcamento.Rejeitar();

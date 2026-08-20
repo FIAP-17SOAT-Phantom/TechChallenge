@@ -19,7 +19,7 @@ public sealed class ConsultarVeiculoHandler : IRequestHandler<ConsultarVeiculoQu
 
         if (veiculo is null)
         {
-            return Result.Failure<VeiculoDto>("Veiculo nao encontrado");
+            return Result.NotFound<VeiculoDto>("Veiculo nao encontrado");
         }
 
         var dto = new VeiculoDto(

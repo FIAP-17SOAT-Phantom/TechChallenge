@@ -28,7 +28,7 @@ public sealed class FinalizarOrdemDeServicoHandler : IRequestHandler<FinalizarOr
 
         if (ordemDeServico is null)
         {
-            return Result.Failure("Ordem de Servico nao encontrada");
+            return Result.NotFound("Ordem de Servico nao encontrada");
         }
 
         if (!ordemDeServico.OrcamentoId.HasValue)
@@ -40,7 +40,7 @@ public sealed class FinalizarOrdemDeServicoHandler : IRequestHandler<FinalizarOr
 
         if (orcamento is null || orcamento.Status != StatusOrcamento.Aprovado)
         {
-            return Result.Failure("Orcamento aprovado nao encontrado");
+            return Result.NotFound("Orcamento aprovado nao encontrado");
         }
 
         var pecas = new List<Peca>();
@@ -52,12 +52,12 @@ public sealed class FinalizarOrdemDeServicoHandler : IRequestHandler<FinalizarOr
 
             if (peca is null)
             {
-                return Result.Failure($"Peca {pecaId} nao encontrada");
+                return Result.NotFound($"Peca {pecaId} nao encontrada");
             }
 
             if (!peca.Reservas.Any(reserva => reserva.OrdemDeServicoId == ordemDeServico.Id && reserva.Status == StatusReserva.Ativa))
             {
-                return Result.Failure($"Reserva ativa da peca {peca.Nome} nao encontrada");
+                return Result.Conflict($"Reserva ativa da peca {peca.Nome} nao encontrada");
             }
 
             pecas.Add(peca);

@@ -19,7 +19,7 @@ public sealed class ConsultarPecaHandler : IRequestHandler<ConsultarPecaQuery, R
 
         if (peca is null)
         {
-            return Result.Failure<PecaDto>("Peca nao encontrada");
+            return Result.NotFound<PecaDto>("Peca nao encontrada");
         }
 
         var dto = new PecaDto(peca.Id, peca.Nome, peca.Codigo, peca.Descricao, peca.PrecoUnitario, peca.QuantidadeEmEstoque, peca.QuantidadeReservada, peca.QuantidadeDisponivel, peca.QuantidadeMinima);

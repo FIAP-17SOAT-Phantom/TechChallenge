@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using OficinaMecanica.Domain.Estoque.Entities;
+using OficinaMecanica.Domain.Oficina.Entities;
 
 namespace OficinaMecanica.Infrastructure.Persistence.Configurations;
 
@@ -58,5 +59,6 @@ public class ReservaEntityConfiguration : IEntityTypeConfiguration<Reserva>
 
         builder.HasIndex(r => r.OrdemDeServicoId);
         builder.HasIndex(r => r.PecaId);
+        builder.HasOne<OrdemDeServico>().WithMany().HasForeignKey(r => r.OrdemDeServicoId).OnDelete(DeleteBehavior.Restrict);
     }
 }

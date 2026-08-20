@@ -22,7 +22,7 @@ public sealed class AtualizarClienteHandler : IRequestHandler<AtualizarClienteCo
 
         if (cliente is null)
         {
-            return Result.Failure("Cliente nao encontrado");
+            return Result.NotFound("Cliente nao encontrado");
         }
 
         var emailResult = Email.Criar(request.Email);

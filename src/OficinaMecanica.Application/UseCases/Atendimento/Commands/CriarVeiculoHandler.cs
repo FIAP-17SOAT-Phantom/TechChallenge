@@ -25,19 +25,19 @@ public sealed class CriarVeiculoHandler : IRequestHandler<CriarVeiculoCommand, R
 
         if (cliente is null)
         {
-            return Result.Failure<Guid>("Cliente nao encontrado");
+            return Result.NotFound<Guid>("Cliente nao encontrado");
         }
 
         var placaResult = Placa.Criar(request.Placa);
 
         if (placaResult.IsFailure)
         {
-            return Result.Failure<Guid>(placaResult.Error);
+            return Result.Failure<Guid>(placaResult.Error, placaResult.ErrorType);
         }
 
         if (await _veiculoRepository.ExistsByPlacaAsync(placaResult.Value, cancellationToken))
         {
-            return Result.Failure<Guid>("Ja existe um veiculo cadastrado com esta placa");
+            return Result.Conflict<Guid>("Ja existe um veiculo cadastrado com esta placa");
         }
 
         var veiculo = new Veiculo(placaResult.Value, request.Marca, request.Modelo, request.Ano, request.ClienteId);

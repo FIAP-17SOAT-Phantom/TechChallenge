@@ -7,11 +7,13 @@ namespace OficinaMecanica.Application.UseCases.Estoque.Commands;
 public sealed class AdicionarEstoqueHandler : IRequestHandler<AdicionarEstoqueCommand, Result>
 {
     private readonly IPecaRepository _pecaRepository;
+    private readonly IAlertaEstoqueRepository _alertaEstoqueRepository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public AdicionarEstoqueHandler(IPecaRepository pecaRepository, IUnitOfWork unitOfWork)
+    public AdicionarEstoqueHandler(IPecaRepository pecaRepository, IAlertaEstoqueRepository alertaEstoqueRepository, IUnitOfWork unitOfWork)
     {
         _pecaRepository = pecaRepository;
+        _alertaEstoqueRepository = alertaEstoqueRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -21,7 +23,7 @@ public sealed class AdicionarEstoqueHandler : IRequestHandler<AdicionarEstoqueCo
 
         if (peca is null)
         {
-            return Result.Failure("Peca nao encontrada");
+            return Result.NotFound("Peca nao encontrada");
         }
 
         var result = peca.AdicionarEstoque(request.Quantidade);
@@ -29,6 +31,23 @@ public sealed class AdicionarEstoqueHandler : IRequestHandler<AdicionarEstoqueCo
         if (result.IsFailure)
         {
             return result;
+        }
+
+        if (peca.QuantidadeDisponivel > peca.QuantidadeMinima)
+        {
+            var alerta = await _alertaEstoqueRepository.GetAtivoByPecaIdAsync(peca.Id, cancellationToken);
+
+            if (alerta is not null)
+            {
+                var resolucaoResult = alerta.Resolver();
+
+                if (resolucaoResult.IsFailure)
+                {
+                    return resolucaoResult;
+                }
+
+                _alertaEstoqueRepository.Update(alerta);
+            }
         }
 
         _pecaRepository.Update(peca);

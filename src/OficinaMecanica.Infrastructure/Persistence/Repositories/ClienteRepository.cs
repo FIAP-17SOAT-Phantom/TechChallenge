@@ -20,6 +20,8 @@ public class ClienteRepository : IClienteRepository
     public async Task<IReadOnlyList<Cliente>> GetAllAsync(CancellationToken cancellationToken = default)
     => await _context.Clientes.AsNoTracking().ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Cliente>> GetPagedAsync(int page, int pageSize, CancellationToken cancellationToken = default) => await _context.Clientes.AsNoTracking().OrderBy(cliente => cliente.Nome).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+
     public async Task<bool> ExistsByCpfAsync(Cpf cpf, CancellationToken cancellationToken = default)
     => await _context.Clientes.AnyAsync(c => c.Cpf.Numero == cpf.Numero, cancellationToken);
 

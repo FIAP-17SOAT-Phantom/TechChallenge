@@ -28,6 +28,8 @@ public sealed class OrdemDeServicoTests
         Assert.True(ordemDeServico.VincularOrcamento(Guid.NewGuid()).IsSuccess);
         Assert.True(ordemDeServico.IniciarExecucao().IsSuccess);
         Assert.Equal(StatusOS.EmExecucao, ordemDeServico.Status);
+        Assert.NotNull(ordemDeServico.DataInicioExecucao);
+        Assert.True(ordemDeServico.RegistrarServicoExecutado(item.ServicoId).IsSuccess);
         Assert.True(ordemDeServico.Finalizar().IsSuccess);
         Assert.Equal(StatusOS.Finalizada, ordemDeServico.Status);
         Assert.True(ordemDeServico.RegistrarEntrega().IsSuccess);
@@ -76,9 +78,11 @@ public sealed class OrdemDeServicoTests
     public void Cancelar_QuandoEstadoTerminal_DeveFalhar(StatusOS status)
     {
         var ordemDeServico = CriarOrdemDeServico();
+        var item = new ItemOS(Guid.NewGuid(), null, 1);
         ordemDeServico.IniciarDiagnostico(Guid.NewGuid());
-        ordemDeServico.RegistrarDiagnostico("Diagnostico", [new ItemOS(Guid.NewGuid(), null, 1)]);
+        ordemDeServico.RegistrarDiagnostico("Diagnostico", [item]);
         ordemDeServico.IniciarExecucao();
+        ordemDeServico.RegistrarServicoExecutado(item.ServicoId);
         ordemDeServico.Finalizar();
 
         if (status == StatusOS.Entregue)

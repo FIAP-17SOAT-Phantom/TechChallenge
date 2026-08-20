@@ -21,7 +21,7 @@ public sealed class RegistrarEntregaHandler : IRequestHandler<RegistrarEntregaCo
 
         if (ordemDeServico is null)
         {
-            return Result.Failure("Ordem de Servico nao encontrada");
+            return Result.NotFound("Ordem de Servico nao encontrada");
         }
 
         var result = ordemDeServico.RegistrarEntrega();

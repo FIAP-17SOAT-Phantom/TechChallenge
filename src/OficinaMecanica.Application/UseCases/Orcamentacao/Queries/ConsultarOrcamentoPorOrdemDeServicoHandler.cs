@@ -19,7 +19,7 @@ public sealed class ConsultarOrcamentoPorOrdemDeServicoHandler : IRequestHandler
 
         if (orcamento is null)
         {
-            return Result.Failure<OrcamentoDto>("Orcamento nao encontrado");
+            return Result.NotFound<OrcamentoDto>("Orcamento nao encontrado");
         }
 
         var itens = orcamento.Itens.Select(item => new ItemOrcamentoDto(item.Descricao, item.Tipo.ToString(), item.Quantidade, item.ValorUnitario, item.ValorTotal, item.PecaId, item.ServicoId)).ToList();

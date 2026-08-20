@@ -20,6 +20,8 @@ public class VeiculoRepository : IVeiculoRepository
     public async Task<IReadOnlyList<Veiculo>> GetByClienteIdAsync(Guid clienteId, CancellationToken cancellationToken = default)
     => await _context.Veiculos.Where(v => v.ClienteId == clienteId).AsNoTracking().ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Veiculo>> GetPagedByClienteIdAsync(Guid clienteId, int page, int pageSize, CancellationToken cancellationToken = default) => await _context.Veiculos.Where(veiculo => veiculo.ClienteId == clienteId).AsNoTracking().OrderBy(veiculo => veiculo.Placa.Valor).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+
     public async Task<bool> ExistsByPlacaAsync(Placa placa, CancellationToken cancellationToken = default)
     => await _context.Veiculos.AnyAsync(v => v.Placa.Valor == placa.Valor, cancellationToken);
 

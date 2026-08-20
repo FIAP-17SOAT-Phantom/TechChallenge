@@ -8,6 +8,8 @@ public class ItemOS : ValueObject
     public Guid? PecaId { get; }
     public int Quantidade { get; }
     public string? Observacao { get; }
+    public bool Executado { get; private set; }
+    public DateTime? DataExecucao { get; private set; }
 
     private ItemOS() { } // EF Core
 
@@ -23,6 +25,17 @@ public class ItemOS : ValueObject
         PecaId = pecaId;
         Quantidade = quantidade;
         Observacao = observacao;
+        Executado = false;
+    }
+
+    public Result RegistrarExecucao()
+    {
+        if (Executado)
+            return Result.Failure("Servico ja foi registrado como executado");
+
+        Executado = true;
+        DataExecucao = DateTime.UtcNow;
+        return Result.Success();
     }
 
     protected override IEnumerable<object?> GetEqualityComponents()

@@ -21,7 +21,7 @@ public sealed class EnviarOrcamentoHandler : IRequestHandler<EnviarOrcamentoComm
 
         if (orcamento is null)
         {
-            return Result.Failure("Orcamento nao encontrado");
+            return Result.NotFound("Orcamento nao encontrado");
         }
 
         var result = orcamento.Enviar();

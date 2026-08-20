@@ -14,9 +14,7 @@ public sealed class ListarPecasHandler : IRequestHandler<ListarPecasQuery, IRead
 
     public async Task<IReadOnlyList<PecaDto>> Handle(ListarPecasQuery request, CancellationToken cancellationToken)
     {
-        var pecas = request.SomenteEstoqueBaixo
-            ? await _pecaRepository.GetComEstoqueBaixoAsync(cancellationToken)
-            : await _pecaRepository.GetAllAsync(cancellationToken);
+        var pecas = await _pecaRepository.GetPagedAsync(request.SomenteEstoqueBaixo, request.Pagina, request.TamanhoPagina, cancellationToken);
 
         return pecas.Select(peca => new PecaDto(peca.Id, peca.Nome, peca.Codigo, peca.Descricao, peca.PrecoUnitario, peca.QuantidadeEmEstoque, peca.QuantidadeReservada, peca.QuantidadeDisponivel, peca.QuantidadeMinima)).ToList();
     }

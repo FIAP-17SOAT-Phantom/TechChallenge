@@ -14,7 +14,7 @@ public sealed class ListarClientesHandler : IRequestHandler<ListarClientesQuery,
 
     public async Task<IReadOnlyList<ClienteDto>> Handle(ListarClientesQuery request, CancellationToken cancellationToken)
     {
-        var clientes = await _clienteRepository.GetAllAsync(cancellationToken);
+        var clientes = await _clienteRepository.GetPagedAsync(request.Pagina, request.TamanhoPagina, cancellationToken);
 
         return clientes
             .Select(cliente => new ClienteDto(

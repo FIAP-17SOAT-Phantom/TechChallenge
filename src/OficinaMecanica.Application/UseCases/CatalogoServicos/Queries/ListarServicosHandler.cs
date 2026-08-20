@@ -14,9 +14,7 @@ public sealed class ListarServicosHandler : IRequestHandler<ListarServicosQuery,
 
     public async Task<IReadOnlyList<ServicoDto>> Handle(ListarServicosQuery request, CancellationToken cancellationToken)
     {
-        var servicos = request.SomenteAtivos
-            ? await _servicoRepository.GetAllAtivosAsync(cancellationToken)
-            : await _servicoRepository.GetAllAsync(cancellationToken);
+        var servicos = await _servicoRepository.GetPagedAsync(request.SomenteAtivos, request.Pagina, request.TamanhoPagina, cancellationToken);
 
         return servicos
             .Select(servico => new ServicoDto(

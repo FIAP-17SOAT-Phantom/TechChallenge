@@ -28,6 +28,7 @@ public static class DependencyInjection
         services.AddScoped<IOrcamentoRepository, OrcamentoRepository>();
         services.AddScoped<IPecaRepository, PecaRepository>();
         services.AddScoped<IServicoRepository, ServicoRepository>();
+        services.AddScoped<IAlertaEstoqueRepository, AlertaEstoqueRepository>();
 
         services.AddIdentityCore<UsuarioSistema>(options =>
         {

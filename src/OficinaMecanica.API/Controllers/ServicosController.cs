@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OficinaMecanica.Application.UseCases.CatalogoServicos.Commands;
 using OficinaMecanica.Application.UseCases.CatalogoServicos.Queries;
+using OficinaMecanica.API.Extensions;
 
 namespace OficinaMecanica.API.Controllers;
 
@@ -25,7 +26,7 @@ public sealed class ServicosController : ControllerBase
 
         if (result.IsFailure)
         {
-            return BadRequest(new { erro = result.Error });
+            return this.ToProblem(result);
         }
 
         return CreatedAtAction(nameof(Consultar), new { servicoId = result.Value }, new { id = result.Value });
@@ -38,16 +39,16 @@ public sealed class ServicosController : ControllerBase
 
         if (result.IsFailure)
         {
-            return NotFound(new { erro = result.Error });
+            return this.ToProblem(result);
         }
 
         return Ok(result.Value);
     }
 
     [HttpGet]
-    public async Task<IActionResult> Listar([FromQuery] bool somenteAtivos = true, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Listar([FromQuery] bool somenteAtivos = true, [FromQuery] int pagina = 1, [FromQuery] int tamanhoPagina = 20, CancellationToken cancellationToken = default)
     {
-        var servicos = await _mediator.Send(new ListarServicosQuery(somenteAtivos), cancellationToken);
+        var servicos = await _mediator.Send(new ListarServicosQuery(somenteAtivos, pagina, tamanhoPagina), cancellationToken);
 
         return Ok(servicos);
     }
@@ -61,7 +62,7 @@ public sealed class ServicosController : ControllerBase
 
         if (result.IsFailure)
         {
-            return BadRequest(new { erro = result.Error });
+            return this.ToProblem(result);
         }
 
         return NoContent();
@@ -74,7 +75,7 @@ public sealed class ServicosController : ControllerBase
 
         if (result.IsFailure)
         {
-            return BadRequest(new { erro = result.Error });
+            return this.ToProblem(result);
         }
 
         return NoContent();
@@ -87,7 +88,7 @@ public sealed class ServicosController : ControllerBase
 
         if (result.IsFailure)
         {
-            return BadRequest(new { erro = result.Error });
+            return this.ToProblem(result);
         }
 
         return NoContent();

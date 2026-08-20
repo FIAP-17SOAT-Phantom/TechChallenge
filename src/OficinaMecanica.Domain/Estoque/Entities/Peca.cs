@@ -84,7 +84,7 @@ public class Peca : AggregateRoot
             return Result.Failure<Reserva>("Quantidade a reservar deve ser maior que zero");
 
         if (quantidade > QuantidadeDisponivel)
-            return Result.Failure<Reserva>($"Estoque insuficiente para {Nome}. Disponivel: {QuantidadeDisponivel}, Solicitado: {quantidade}");
+            return Result.Conflict<Reserva>($"Estoque insuficiente para {Nome}. Disponivel: {QuantidadeDisponivel}, Solicitado: {quantidade}");
 
         QuantidadeReservada += quantidade;
         var reserva = new Reserva(Id, ordemDeServicoId, quantidade);
@@ -100,7 +100,7 @@ public class Peca : AggregateRoot
     {
         var reserva = _reservas.FirstOrDefault(r => r.Id == reservaId);
         if (reserva is null)
-            return Result.Failure("Reserva nao encontrada");
+            return Result.NotFound("Reserva nao encontrada");
 
         var result = reserva.Liberar();
         if (result.IsFailure)
@@ -114,7 +114,7 @@ public class Peca : AggregateRoot
     {
         var reserva = _reservas.FirstOrDefault(r => r.Id == reservaId);
         if (reserva is null)
-            return Result.Failure("Reserva nao encontrada");
+            return Result.NotFound("Reserva nao encontrada");
 
         var result = reserva.Consumir();
         if (result.IsFailure)

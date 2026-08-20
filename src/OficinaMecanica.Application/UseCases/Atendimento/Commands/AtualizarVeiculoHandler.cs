@@ -21,7 +21,7 @@ public sealed class AtualizarVeiculoHandler : IRequestHandler<AtualizarVeiculoCo
 
         if (veiculo is null)
         {
-            return Result.Failure("Veiculo nao encontrado");
+            return Result.NotFound("Veiculo nao encontrado");
         }
 
         veiculo.Atualizar(request.Marca, request.Modelo, request.Ano);

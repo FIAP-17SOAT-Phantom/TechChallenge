@@ -33,10 +33,66 @@ public class Orcamento : AggregateRoot
         _itens.AddRange(itens);
     }
 
+    public Result AdicionarItem(ItemOrcamento item)
+    {
+        if (Status != StatusOrcamento.Pendente)
+            return Result.Failure("Itens so podem ser adicionados enquanto o orcamento estiver Pendente");
+
+        if (item is null)
+            return Result.Failure("Item do orcamento e obrigatorio");
+
+        _itens.Add(item);
+        return Result.Success();
+    }
+
+    public Result AlterarQuantidadeItem(TipoItem tipo, Guid referenciaId, int quantidade)
+    {
+        if (Status != StatusOrcamento.Pendente)
+            return Result.Failure("Itens so podem ser alterados enquanto o orcamento estiver Pendente");
+
+        if (quantidade <= 0)
+            return Result.Failure("Quantidade deve ser maior que zero");
+
+        var item = EncontrarItem(tipo, referenciaId);
+
+        if (item is null)
+            return Result.Failure("Item nao encontrado no orcamento");
+
+        var itemAtualizado = new ItemOrcamento(item.Descricao, item.Tipo, quantidade, item.ValorUnitario, item.PecaId, item.ServicoId);
+        var indice = _itens.IndexOf(item);
+        _itens[indice] = itemAtualizado;
+        return Result.Success();
+    }
+
+    public Result RemoverItem(TipoItem tipo, Guid referenciaId)
+    {
+        if (Status != StatusOrcamento.Pendente)
+            return Result.Failure("Itens so podem ser removidos enquanto o orcamento estiver Pendente");
+
+        if (_itens.Count == 1)
+            return Result.Failure("Orcamento deve possuir pelo menos um item");
+
+        var item = EncontrarItem(tipo, referenciaId);
+
+        if (item is null)
+            return Result.Failure("Item nao encontrado no orcamento");
+
+        if (item.Tipo == TipoItem.Servico && _itens.Count(i => i.Tipo == TipoItem.Servico) == 1)
+            return Result.Failure("Orcamento deve possuir pelo menos um servico");
+
+        _itens.Remove(item);
+        return Result.Success();
+    }
+
+    private ItemOrcamento? EncontrarItem(TipoItem tipo, Guid referenciaId) => tipo == TipoItem.Peca ? _itens.FirstOrDefault(item => item.Tipo == tipo && item.PecaId == referenciaId) : _itens.FirstOrDefault(item => item.Tipo == tipo && item.ServicoId == referenciaId);
+
     public Result Enviar()
     {
         if (Status != StatusOrcamento.Pendente)
             return Result.Failure("Orcamento deve estar Pendente para ser enviado");
+
+        if (!_itens.Any(item => item.Tipo == TipoItem.Servico && item.ServicoId.HasValue))
+            return Result.Failure("Orcamento deve possuir pelo menos um servico para ser enviado");
 
         Status = StatusOrcamento.Enviado;
         RaiseDomainEvent(new OrcamentoEnviadoEvent(Id, OrdemDeServicoId));

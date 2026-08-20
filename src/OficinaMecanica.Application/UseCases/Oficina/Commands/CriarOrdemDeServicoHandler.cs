@@ -26,14 +26,14 @@ public sealed class CriarOrdemDeServicoHandler : IRequestHandler<CriarOrdemDeSer
 
         if (cliente is null)
         {
-            return Result.Failure<Guid>("Cliente nao encontrado");
+            return Result.NotFound<Guid>("Cliente nao encontrado");
         }
 
         var veiculo = await _veiculoRepository.GetByIdAsync(request.VeiculoId, cancellationToken);
 
         if (veiculo is null)
         {
-            return Result.Failure<Guid>("Veiculo nao encontrado");
+            return Result.NotFound<Guid>("Veiculo nao encontrado");
         }
 
         if (!veiculo.PertenceAoCliente(request.ClienteId))

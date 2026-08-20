@@ -21,7 +21,7 @@ public sealed class AtualizarPecaHandler : IRequestHandler<AtualizarPecaCommand,
 
         if (peca is null)
         {
-            return Result.Failure("Peca nao encontrada");
+            return Result.NotFound("Peca nao encontrada");
         }
 
         peca.Atualizar(request.Nome, request.Descricao, request.PrecoUnitario, request.QuantidadeMinima);

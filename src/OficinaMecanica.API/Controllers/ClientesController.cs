@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OficinaMecanica.Application.UseCases.Atendimento.Commands;
 using OficinaMecanica.Application.UseCases.Atendimento.Queries;
+using OficinaMecanica.API.Extensions;
 
 namespace OficinaMecanica.API.Controllers;
 
@@ -25,7 +26,7 @@ public sealed class ClientesController : ControllerBase
 
         if (result.IsFailure)
         {
-            return BadRequest(new { erro = result.Error });
+            return this.ToProblem(result);
         }
 
         return CreatedAtAction(nameof(Consultar), new { clienteId = result.Value }, new { id = result.Value });
@@ -38,16 +39,16 @@ public sealed class ClientesController : ControllerBase
 
         if (result.IsFailure)
         {
-            return NotFound(new { erro = result.Error });
+            return this.ToProblem(result);
         }
 
         return Ok(result.Value);
     }
 
     [HttpGet]
-    public async Task<IActionResult> Listar(CancellationToken cancellationToken)
+    public async Task<IActionResult> Listar([FromQuery] int pagina = 1, [FromQuery] int tamanhoPagina = 20, CancellationToken cancellationToken = default)
     {
-        var clientes = await _mediator.Send(new ListarClientesQuery(), cancellationToken);
+        var clientes = await _mediator.Send(new ListarClientesQuery(pagina, tamanhoPagina), cancellationToken);
 
         return Ok(clientes);
     }
@@ -61,7 +62,7 @@ public sealed class ClientesController : ControllerBase
 
         if (result.IsFailure)
         {
-            return BadRequest(new { erro = result.Error });
+            return this.ToProblem(result);
         }
 
         return NoContent();
@@ -74,7 +75,7 @@ public sealed class ClientesController : ControllerBase
 
         if (result.IsFailure)
         {
-            return BadRequest(new { erro = result.Error });
+            return this.ToProblem(result);
         }
 
         return NoContent();

@@ -8,3 +8,5 @@ public sealed record OrdemDeServicoCriadaEvent(Guid OrdemDeServicoId, string Num
 public sealed record OrdemDeServicoFinalizadaEvent(Guid OrdemDeServicoId) : DomainEvent;
 
 public sealed record OrdemDeServicoCanceladaEvent(Guid OrdemDeServicoId, StatusOS StatusAnterior) : DomainEvent;
+
+public sealed record ServicoExecutadoEvent(Guid OrdemDeServicoId, Guid ServicoId, DateTime DataExecucao) : DomainEvent;

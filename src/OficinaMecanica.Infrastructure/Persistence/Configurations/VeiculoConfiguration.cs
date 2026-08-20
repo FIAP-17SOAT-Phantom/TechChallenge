@@ -26,6 +26,11 @@ public class VeiculoConfiguration : IEntityTypeConfiguration<Veiculo>
         builder.Property(v => v.Ano).IsRequired();
         builder.Property(v => v.ClienteId).IsRequired();
 
+        builder.HasOne<Cliente>()
+        .WithMany()
+        .HasForeignKey(v => v.ClienteId)
+        .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(v => v.ClienteId);
 
         builder.Ignore(v => v.DomainEvents);

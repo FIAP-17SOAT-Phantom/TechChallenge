@@ -14,7 +14,7 @@ public sealed class ListarVeiculosPorClienteHandler : IRequestHandler<ListarVeic
 
     public async Task<IReadOnlyList<VeiculoDto>> Handle(ListarVeiculosPorClienteQuery request, CancellationToken cancellationToken)
     {
-        var veiculos = await _veiculoRepository.GetByClienteIdAsync(request.ClienteId, cancellationToken);
+        var veiculos = await _veiculoRepository.GetPagedByClienteIdAsync(request.ClienteId, request.Pagina, request.TamanhoPagina, cancellationToken);
 
         return veiculos
             .Select(veiculo => new VeiculoDto(

@@ -21,7 +21,7 @@ public sealed class AlterarStatusServicoHandler : IRequestHandler<AlterarStatusS
 
         if (servico is null)
         {
-            return Result.Failure("Servico nao encontrado");
+            return Result.NotFound("Servico nao encontrado");
         }
 
         if (request.Ativo)

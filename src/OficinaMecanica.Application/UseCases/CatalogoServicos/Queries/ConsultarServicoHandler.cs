@@ -19,7 +19,7 @@ public sealed class ConsultarServicoHandler : IRequestHandler<ConsultarServicoQu
 
         if (servico is null)
         {
-            return Result.Failure<ServicoDto>("Servico nao encontrado");
+            return Result.NotFound<ServicoDto>("Servico nao encontrado");
         }
 
         var dto = new ServicoDto(

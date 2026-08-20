@@ -1,169 +1,133 @@
-﻿# Tech Challenge | Grupo Phantom
+# Tech Challenge | Grupo Phantom
 
-## Sistema Integrado de Atendimento e Execucao de Servicos (Oficina Mecanica)
+## Sistema Integrado de Atendimento e Execucao de Servicos
 
-Sistema de gestao de uma oficina mecanica desenvolvido com **Domain-Driven Design (DDD)**, **Clean Architecture** e **.NET 8**, como parte do Tech Challenge da pos-graduacao em Software Architecture (FIAP - Turma 17SOAT).
-
----
+Backend de gestao de oficina mecanica desenvolvido com .NET 8, Clean Architecture, DDD, CQRS, MediatR, Entity Framework Core e PostgreSQL para o Tech Challenge da FIAP.
 
 ## Funcionalidades
 
-- Cadastro de clientes e veiculos
-- Criacao e acompanhamento de Ordens de Servico (OS)
-- Geracao de orcamento com aprovacao/rejeicao/renegociacao
-- Controle de estoque de pecas e insumos com reserva automatica
-- Maquina de estados da OS (Recebida > Em Diagnostico > Aguardando Aprovacao > Em Execucao > Finalizada > Entregue)
-- Autenticacao JWT com roles (Admin, Atendente, Mecanico, Cliente)
-- Documentacao via Swagger/OpenAPI
+- clientes e veiculos;
+- catalogo de servicos;
+- pecas, reservas, consumo e alertas de estoque;
+- fluxo completo da Ordem de Servico;
+- diagnostico e registro individual dos servicos executados;
+- orcamento, revisao, aprovacao, rejeicao e nova versao;
+- aprovacao e reserva de estoque em transacao serializable;
+- indicadores administrativos;
+- autenticacao JWT e autorizacao por roles;
+- senha temporaria e troca obrigatoria no primeiro acesso;
+- area autenticada do cliente;
+- respostas de erro com `ProblemDetails`;
+- Swagger/OpenAPI com autorizacao Bearer.
 
----
-
-## Stack Tecnica
-
-| Camada | Tecnologia |
-|--------|-----------|
-| Runtime | .NET 8 (LTS) |
-| Web Framework | ASP.NET Core 8 |
-| ORM | Entity Framework Core 8 |
-| Banco de Dados | PostgreSQL 16 |
-| CQRS | MediatR 12 |
-| Validacao | FluentValidation 11 |
-| Autenticacao | JWT Bearer |
-| Documentacao API | Swagger (Swashbuckle) |
-| Containers | Docker + Docker Compose |
-| Testes | xUnit + Moq + TestContainers |
-
----
-
-## Arquitetura
-
-**Clean Architecture** com inversao de dependencia:
-
-``r
-API --> Application --> Domain <-- Infrastructure
-``r
+## Projetos
 
 | Projeto | Responsabilidade |
-|---------|-----------------|
-| OficinaMecanica.API | Controllers, DTOs, Middleware JWT, Swagger |
-| OficinaMecanica.Application | Use Cases, Commands/Queries, Validators, Interfaces |
-| OficinaMecanica.Domain | Entities, Aggregates, Value Objects, Domain Events, Enums |
-| OficinaMecanica.Infrastructure | EF Core, Repositories, DbContext, Migrations |
-| OficinaMecanica.Tests | Testes unitarios e de integracao |
+|---------|------------------|
+| `OficinaMecanica.API` | Controllers, autenticacao, autorizacao, erros e OpenAPI |
+| `OficinaMecanica.Application` | Commands, Queries, Handlers, Validators e interfaces |
+| `OficinaMecanica.Domain` | Aggregates, entidades, Value Objects, eventos e regras |
+| `OficinaMecanica.Infrastructure` | PostgreSQL, EF Core, Identity, repositories e migrations |
+| `OficinaMecanica.Tests` | Testes de Domain e Application |
 
----
+Direcao das dependencias:
 
-## Como executar
+```text
+API -> Application -> Domain
+Infrastructure -> Application / Domain
+```
 
-### Pre-requisitos
+## Execucao com Docker
 
-- Docker e Docker Compose instalados
-- (Opcional) .NET 8 SDK para desenvolvimento local
+Pre-requisitos:
 
-### Subir o ambiente completo
+- Docker;
+- Docker Compose.
 
-`ash
+Crie o arquivo `.env` a partir de `.env.example` e defina, no minimo:
+
+```dotenv
+JWT_SECRET=uma-chave-com-pelo-menos-32-bytes
+ADMIN_PASSWORD=uma-senha-forte
+ADMIN_EMAIL=admin@oficina.com
+```
+
+Suba API e PostgreSQL:
+
+```bash
 docker compose up --build
-``r
+```
 
-A API estara disponivel em: http://localhost:8080
-Swagger: http://localhost:8080/swagger
+Enderecos:
 
-### Rodar localmente (sem Docker)
+- API: `http://localhost:8080`
+- Swagger: `http://localhost:8080/swagger`
 
-`ash
-# Subir apenas o banco
-docker compose up db -d
+As migrations sao aplicadas automaticamente na inicializacao. O administrador inicial e criado a partir das variaveis externas.
 
-# Rodar a API
-cd src/OficinaMecanica.API
-dotnet run
-``r
+## Execucao local
 
-### Rodar testes
+Com PostgreSQL disponivel e as configuracoes definidas:
 
-`ash
-cd src
-dotnet test
-``r
+```powershell
+$env:Jwt__Secret='uma-chave-com-pelo-menos-32-bytes'
+$env:Authentication__SeedUsers__0__Email='admin@oficina.com'
+$env:Authentication__SeedUsers__0__Password='Admin@123456'
+$env:Authentication__SeedUsers__0__Role='Admin'
+dotnet run --project src/OficinaMecanica.API/OficinaMecanica.API.csproj
+```
 
----
+## Primeiro acesso
 
-## Bounded Contexts (DDD)
+1. Autentique o administrador em `POST /api/auth/login`.
+2. Use `Authorize` no Swagger com `Bearer {token}`.
+3. Cadastre Cliente, Veiculo, Servico e Peca.
+4. Crie usuarios em `POST /api/auth/usuarios`.
+5. Entregue a senha temporaria retornada apenas nessa resposta.
+6. O usuario autentica e chama `POST /api/auth/alterar-senha`.
+7. Depois da troca, realiza novo login para obter o token definitivo.
 
-| # | Bounded Context | Responsabilidade |
-|---|----------------|-----------------|
-| 1 | Atendimento | Cadastro de clientes e veiculos, recepcao |
-| 2 | Oficina | Ordem de Servico, diagnostico, execucao |
-| 3 | Orcamentacao | Orcamento, aprovacao/rejeicao/renegociacao |
-| 4 | Estoque | Pecas, controle de quantidade, reserva |
-| 5 | Catalogo de Servicos | Tipos de servico, preco base |
+## Fluxo principal
 
----
+```text
+Criar Cliente e Veiculo
+  -> Criar OS
+  -> Iniciar e registrar diagnostico
+  -> Gerar e revisar orcamento
+  -> Enviar ao cliente
+  -> Cliente aprovar
+  -> Reservar estoque e iniciar execucao
+  -> Registrar servicos executados
+  -> Finalizar e consumir reservas
+  -> Entregar veiculo
+```
+
+## Testes
+
+```bash
+dotnet test src/OficinaMecanica.Tests/OficinaMecanica.Tests.csproj
+```
+
+Os testes de integracao com PostgreSQL real permanecem separados da finalizacao do codigo e dependem de Docker/Testcontainers.
 
 ## Documentacao
 
 | Documento | Descricao |
 |-----------|-----------|
-| [Plano de Execucao](docs/plano-execucao-tech-challenge-fase1.md) | Roadmap completo dos 5 blocos |
-| [Modelagem DDD + Event Storming](docs/plano-bloco1-modelagem-ddd-event-storming.md) | Bounded Contexts, eventos, comandos, agregados |
-| [Decisao Arquitetural](docs/decisao-arquitetural-clean-architecture.md) | Por que Clean Architecture |
-| [Decisao Banco de Dados](docs/decisao-banco-de-dados-postgresql.md) | Por que PostgreSQL |
-| [Decisoes Tecnicas](docs/decisoes-tecnicas-stack-completa.md) | Stack completa e justificativas |
-
----
-
-## Event Storming (Miro)
-
-Board: https://miro.com/app/board/uXjVHy2wodY=/
-
-Conteudo do board:
-- Context Map com 5 Bounded Contexts
-- Timeline do fluxo da Ordem de Servico (15 eventos)
-- Timeline do fluxo de Gestao de Estoque (6 eventos)
-- Linguagem Ubiqua (glossario com 14 termos)
-- Maquina de Estados da OS
-- Diagrama de Arquitetura em Camadas
-
----
-
-## Estrutura do Repositorio
-
-``r
-Tech_Challenge_Fase1_FIAP/
-|-- .gitignore
-|-- docker-compose.yml
-|-- README.md
-|-- docs/
-| |-- decisao-arquitetural-clean-architecture.md
-| |-- decisao-banco-de-dados-postgresql.md
-| |-- decisoes-tecnicas-stack-completa.md
-| |-- plano-bloco1-modelagem-ddd-event-storming.md
-| |-- plano-execucao-tech-challenge-fase1.md
-| |-- miro-import/ (CSVs para importacao no Miro)
-|-- src/
- |-- OficinaMecanica.slnx
- |-- OficinaMecanica.API/
- |-- OficinaMecanica.Application/
- |-- OficinaMecanica.Domain/
- |-- OficinaMecanica.Infrastructure/
- |-- OficinaMecanica.Tests/
-``r
-
----
+| [Evolucao do backend](docs/evolucao-implementacao-backend.md) | Registro incremental de toda a implementacao |
+| [Plano de execucao](docs/plano-execucao-tech-challenge-fase1.md) | Roadmap da fase |
+| [Modelagem DDD e Event Storming](docs/plano-bloco1-modelagem-ddd-event-storming.md) | Bounded Contexts, eventos, comandos e aggregates |
+| [Decisao arquitetural](docs/decisao-arquitetural-clean-architecture.md) | Clean Architecture |
+| [Decisao de banco](docs/decisao-banco-de-dados-postgresql.md) | PostgreSQL |
+| [Decisoes tecnicas](docs/decisoes-tecnicas-stack-completa.md) | Stack e justificativas |
 
 ## Grupo
 
-**Phantom** | FIAP - Pos-graduacao em Software Architecture | Turma 17SOAT
+Phantom | FIAP - Pos-graduacao em Software Architecture | Turma 17SOAT
 
 | Membro | RM |
-|--------|---------|
+|--------|----|
 | Gyovanna de Oliveira Carvalho | 376627 |
-| Bruno Russo Ribeiro da Silva  | 376557 |
+| Bruno Russo Ribeiro da Silva | 376557 |
 
-
----
-
-## Licenca
-
-Projeto academico - FIAP 2026
+Projeto academico - FIAP 2026.

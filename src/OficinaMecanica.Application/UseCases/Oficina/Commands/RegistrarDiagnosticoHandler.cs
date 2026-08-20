@@ -26,7 +26,7 @@ public sealed class RegistrarDiagnosticoHandler : IRequestHandler<RegistrarDiagn
 
         if (ordemDeServico is null)
         {
-            return Result.Failure("Ordem de Servico nao encontrada");
+            return Result.NotFound("Ordem de Servico nao encontrada");
         }
 
         var itens = new List<ItemOS>();
@@ -37,7 +37,7 @@ public sealed class RegistrarDiagnosticoHandler : IRequestHandler<RegistrarDiagn
 
             if (servico is null || !servico.Ativo)
             {
-                return Result.Failure($"Servico {itemRequest.ServicoId} nao encontrado ou inativo");
+                return Result.NotFound($"Servico {itemRequest.ServicoId} nao encontrado ou inativo");
             }
 
             if (itemRequest.PecaId.HasValue)
@@ -46,7 +46,7 @@ public sealed class RegistrarDiagnosticoHandler : IRequestHandler<RegistrarDiagn
 
                 if (peca is null)
                 {
-                    return Result.Failure($"Peca {itemRequest.PecaId.Value} nao encontrada");
+                    return Result.NotFound($"Peca {itemRequest.PecaId.Value} nao encontrada");
                 }
             }
 

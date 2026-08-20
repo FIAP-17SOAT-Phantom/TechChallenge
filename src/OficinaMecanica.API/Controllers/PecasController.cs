@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OficinaMecanica.Application.UseCases.Estoque.Commands;
 using OficinaMecanica.Application.UseCases.Estoque.Queries;
+using OficinaMecanica.API.Extensions;
 
 namespace OficinaMecanica.API.Controllers;
 
@@ -25,7 +26,7 @@ public sealed class PecasController : ControllerBase
 
         if (result.IsFailure)
         {
-            return BadRequest(new { erro = result.Error });
+            return this.ToProblem(result);
         }
 
         return CreatedAtAction(nameof(Consultar), new { pecaId = result.Value }, new { id = result.Value });
@@ -38,16 +39,16 @@ public sealed class PecasController : ControllerBase
 
         if (result.IsFailure)
         {
-            return NotFound(new { erro = result.Error });
+            return this.ToProblem(result);
         }
 
         return Ok(result.Value);
     }
 
     [HttpGet]
-    public async Task<IActionResult> Listar([FromQuery] bool somenteEstoqueBaixo = false, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Listar([FromQuery] bool somenteEstoqueBaixo = false, [FromQuery] int pagina = 1, [FromQuery] int tamanhoPagina = 20, CancellationToken cancellationToken = default)
     {
-        var pecas = await _mediator.Send(new ListarPecasQuery(somenteEstoqueBaixo), cancellationToken);
+        var pecas = await _mediator.Send(new ListarPecasQuery(somenteEstoqueBaixo, pagina, tamanhoPagina), cancellationToken);
 
         return Ok(pecas);
     }
@@ -60,7 +61,7 @@ public sealed class PecasController : ControllerBase
 
         if (result.IsFailure)
         {
-            return BadRequest(new { erro = result.Error });
+            return this.ToProblem(result);
         }
 
         return NoContent();
@@ -73,7 +74,7 @@ public sealed class PecasController : ControllerBase
 
         if (result.IsFailure)
         {
-            return BadRequest(new { erro = result.Error });
+            return this.ToProblem(result);
         }
 
         return NoContent();
@@ -86,7 +87,7 @@ public sealed class PecasController : ControllerBase
 
         if (result.IsFailure)
         {
-            return BadRequest(new { erro = result.Error });
+            return this.ToProblem(result);
         }
 
         return NoContent();

@@ -1,6 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using OficinaMecanica.Domain.Orcamentacao.Entities;
+using OficinaMecanica.Domain.CatalogoServicos.Entities;
+using OficinaMecanica.Domain.Estoque.Entities;
+using OficinaMecanica.Domain.Oficina.Entities;
 
 namespace OficinaMecanica.Infrastructure.Persistence.Configurations;
 
@@ -21,6 +24,7 @@ public class OrcamentoConfiguration : IEntityTypeConfiguration<Orcamento>
 
         builder.Property(o => o.DataCriacao).IsRequired();
         builder.Property(o => o.Observacao).HasMaxLength(1000);
+        builder.HasOne<OrdemDeServico>().WithMany().HasForeignKey(o => o.OrdemDeServicoId).OnDelete(DeleteBehavior.Restrict);
 
         // ValorTotal e calculado - nao persiste
         builder.Ignore(o => o.ValorTotal);
@@ -37,9 +41,12 @@ public class OrcamentoConfiguration : IEntityTypeConfiguration<Orcamento>
             item.Property(i => i.PecaId);
             item.Property(i => i.ServicoId);
             item.Ignore(i => i.ValorTotal); // calculado
+            item.HasOne<Peca>().WithMany().HasForeignKey(i => i.PecaId).OnDelete(DeleteBehavior.Restrict);
+            item.HasOne<Servico>().WithMany().HasForeignKey(i => i.ServicoId).OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.HasIndex(o => o.OrdemDeServicoId);
+        builder.HasIndex(o => new { o.OrdemDeServicoId, o.Versao }).IsUnique();
 
         builder.Ignore(o => o.DomainEvents);
     }

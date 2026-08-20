@@ -9,13 +9,15 @@ public sealed class ExcluirClienteHandler : IRequestHandler<ExcluirClienteComman
     private readonly IClienteRepository _clienteRepository;
     private readonly IVeiculoRepository _veiculoRepository;
     private readonly IOrdemDeServicoRepository _ordemDeServicoRepository;
+    private readonly IIdentityService _identityService;
     private readonly IUnitOfWork _unitOfWork;
 
-    public ExcluirClienteHandler(IClienteRepository clienteRepository, IVeiculoRepository veiculoRepository, IOrdemDeServicoRepository ordemDeServicoRepository, IUnitOfWork unitOfWork)
+    public ExcluirClienteHandler(IClienteRepository clienteRepository, IVeiculoRepository veiculoRepository, IOrdemDeServicoRepository ordemDeServicoRepository, IIdentityService identityService, IUnitOfWork unitOfWork)
     {
         _clienteRepository = clienteRepository;
         _veiculoRepository = veiculoRepository;
         _ordemDeServicoRepository = ordemDeServicoRepository;
+        _identityService = identityService;
         _unitOfWork = unitOfWork;
     }
 
@@ -25,21 +27,26 @@ public sealed class ExcluirClienteHandler : IRequestHandler<ExcluirClienteComman
 
         if (cliente is null)
         {
-            return Result.Failure("Cliente nao encontrado");
+            return Result.NotFound("Cliente nao encontrado");
         }
 
         var veiculos = await _veiculoRepository.GetByClienteIdAsync(request.ClienteId, cancellationToken);
 
         if (veiculos.Count > 0)
         {
-            return Result.Failure("Cliente possui veiculos vinculados");
+            return Result.Conflict("Cliente possui veiculos vinculados");
         }
 
         var ordensDeServico = await _ordemDeServicoRepository.GetByClienteIdAsync(request.ClienteId, cancellationToken);
 
         if (ordensDeServico.Count > 0)
         {
-            return Result.Failure("Cliente possui ordens de servico vinculadas");
+            return Result.Conflict("Cliente possui ordens de servico vinculadas");
+        }
+
+        if (await _identityService.ExisteUsuarioClienteAsync(request.ClienteId, cancellationToken))
+        {
+            return Result.Conflict("Cliente possui usuario de acesso vinculado");
         }
 
         _clienteRepository.Remove(cliente);

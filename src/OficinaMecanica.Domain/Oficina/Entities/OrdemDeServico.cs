@@ -12,6 +12,7 @@ public class OrdemDeServico : AggregateRoot
     public Guid? MecanicoId { get; private set; }
     public StatusOS Status { get; private set; }
     public DateTime DataAbertura { get; private set; }
+    public DateTime? DataInicioExecucao { get; private set; }
     public DateTime? DataFinalizacao { get; private set; }
     public string? Diagnostico { get; private set; }
     public Guid? OrcamentoId { get; private set; }
@@ -81,6 +82,42 @@ public class OrdemDeServico : AggregateRoot
             return Result.Failure("OS deve estar Aguardando Aprovacao para iniciar execucao");
 
         Status = StatusOS.EmExecucao;
+        DataInicioExecucao = DateTime.UtcNow;
+        return Result.Success();
+    }
+
+    public Result PrepararItensExecucao(List<ItemOS> itens)
+    {
+        if (Status != StatusOS.AguardandoAprovacao)
+            return Result.Failure("OS deve estar Aguardando Aprovacao para preparar a execucao");
+
+        if (itens is null || itens.Count == 0)
+            return Result.Failure("Execucao deve possuir pelo menos um servico");
+
+        _itens.Clear();
+        _itens.AddRange(itens);
+        return Result.Success();
+    }
+
+    public Result RegistrarServicoExecutado(Guid servicoId)
+    {
+        if (Status != StatusOS.EmExecucao)
+            return Result.Failure("OS deve estar Em Execucao para registrar servico executado");
+
+        if (servicoId == Guid.Empty)
+            return Result.Failure("Servico e obrigatorio");
+
+        var item = _itens.FirstOrDefault(i => i.ServicoId == servicoId && !i.Executado);
+
+        if (item is null)
+            return Result.Failure("Servico pendente nao encontrado na Ordem de Servico");
+
+        var result = item.RegistrarExecucao();
+
+        if (result.IsFailure)
+            return result;
+
+        RaiseDomainEvent(new ServicoExecutadoEvent(Id, servicoId, item.DataExecucao!.Value));
         return Result.Success();
     }
 
@@ -88,6 +125,9 @@ public class OrdemDeServico : AggregateRoot
     {
         if (Status != StatusOS.EmExecucao)
             return Result.Failure("OS deve estar Em Execucao para ser finalizada");
+
+        if (_itens.Any(i => !i.Executado))
+            return Result.Failure("Todos os servicos devem ser executados antes da finalizacao da OS");
 
         Status = StatusOS.Finalizada;
         DataFinalizacao = DateTime.UtcNow;

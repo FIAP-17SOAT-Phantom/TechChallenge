@@ -19,7 +19,7 @@ public sealed class ConsultarClienteHandler : IRequestHandler<ConsultarClienteQu
 
         if (cliente is null)
         {
-            return Result.Failure<ClienteDto>("Cliente nao encontrado");
+            return Result.NotFound<ClienteDto>("Cliente nao encontrado");
         }
 
         var dto = new ClienteDto(

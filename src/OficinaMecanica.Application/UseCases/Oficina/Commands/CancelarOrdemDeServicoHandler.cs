@@ -28,7 +28,7 @@ public sealed class CancelarOrdemDeServicoHandler : IRequestHandler<CancelarOrde
 
         if (ordemDeServico is null)
         {
-            return Result.Failure("Ordem de Servico nao encontrada");
+            return Result.NotFound("Ordem de Servico nao encontrada");
         }
 
         if (ordemDeServico.Status == StatusOS.EmExecucao && ordemDeServico.OrcamentoId.HasValue)
@@ -37,7 +37,7 @@ public sealed class CancelarOrdemDeServicoHandler : IRequestHandler<CancelarOrde
 
             if (orcamento is null || orcamento.Status != StatusOrcamento.Aprovado)
             {
-                return Result.Failure("Orcamento aprovado nao encontrado");
+                return Result.NotFound("Orcamento aprovado nao encontrado");
             }
 
             var pecaIds = orcamento.Itens.Where(item => item.Tipo == TipoItem.Peca && item.PecaId.HasValue).Select(item => item.PecaId!.Value).Distinct();
@@ -48,7 +48,7 @@ public sealed class CancelarOrdemDeServicoHandler : IRequestHandler<CancelarOrde
 
                 if (peca is null)
                 {
-                    return Result.Failure($"Peca {pecaId} nao encontrada");
+                    return Result.NotFound($"Peca {pecaId} nao encontrada");
                 }
 
                 var reservas = peca.Reservas.Where(reserva => reserva.OrdemDeServicoId == ordemDeServico.Id && reserva.Status == StatusReserva.Ativa).ToList();

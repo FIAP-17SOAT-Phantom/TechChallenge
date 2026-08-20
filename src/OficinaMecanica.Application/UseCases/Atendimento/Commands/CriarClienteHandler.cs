@@ -22,15 +22,15 @@ public sealed class CriarClienteHandler : IRequestHandler<CriarClienteCommand, R
         // Criar Value Objects com validacao
         var cpfResult = Cpf.Criar(request.Cpf);
         if (cpfResult.IsFailure)
-            return Result.Failure<Guid>(cpfResult.Error);
+            return Result.Failure<Guid>(cpfResult.Error, cpfResult.ErrorType);
 
         var emailResult = Email.Criar(request.Email);
         if (emailResult.IsFailure)
-            return Result.Failure<Guid>(emailResult.Error);
+            return Result.Failure<Guid>(emailResult.Error, emailResult.ErrorType);
 
         // Verificar duplicidade de CPF
         if (await _clienteRepository.ExistsByCpfAsync(cpfResult.Value, cancellationToken))
-            return Result.Failure<Guid>("Ja existe um cliente cadastrado com este CPF");
+            return Result.Conflict<Guid>("Ja existe um cliente cadastrado com este CPF");
 
         // Criar aggregate
         var cliente = new Cliente(request.Nome, cpfResult.Value, request.Telefone, emailResult.Value);

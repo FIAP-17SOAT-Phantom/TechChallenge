@@ -28,6 +28,8 @@ public class OrdemDeServicoRepository : IOrdemDeServicoRepository
     .OrderByDescending(os => os.DataAbertura)
     .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<OrdemDeServico>> GetPagedByClienteIdAsync(Guid clienteId, StatusOS? status, int page, int pageSize, CancellationToken cancellationToken = default) => await _context.OrdensDeServico.Where(os => os.ClienteId == clienteId && (!status.HasValue || os.Status == status.Value)).AsNoTracking().OrderByDescending(os => os.DataAbertura).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyList<OrdemDeServico>> GetByStatusAsync(StatusOS status, CancellationToken cancellationToken = default)
     => await _context.OrdensDeServico
     .Where(os => os.Status == status)
@@ -45,6 +47,13 @@ public class OrdemDeServicoRepository : IOrdemDeServicoRepository
 
     public async Task<bool> ExistsByVeiculoIdAsync(Guid veiculoId, CancellationToken cancellationToken = default)
     => await _context.OrdensDeServico.AnyAsync(os => os.VeiculoId == veiculoId, cancellationToken);
+
+    public async Task<TimeSpan?> GetTempoMedioExecucaoAsync(CancellationToken cancellationToken = default)
+    {
+        var periodos = await _context.OrdensDeServico.Where(os => os.DataInicioExecucao.HasValue && os.DataFinalizacao.HasValue).Select(os => new { Inicio = os.DataInicioExecucao!.Value, Fim = os.DataFinalizacao!.Value }).ToListAsync(cancellationToken);
+
+        return periodos.Count == 0 ? null : TimeSpan.FromSeconds(periodos.Average(periodo => (periodo.Fim - periodo.Inicio).TotalSeconds));
+    }
 
     /// <summary>
     /// Gera proximo numero sequencial para OS.

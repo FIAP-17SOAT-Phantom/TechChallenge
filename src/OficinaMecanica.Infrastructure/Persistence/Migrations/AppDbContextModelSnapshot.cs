@@ -235,6 +235,46 @@ namespace OficinaMecanica.Infrastructure.Persistence.Migrations
                     b.ToTable("Servicos", (string)null);
                 });
 
+            modelBuilder.Entity("OficinaMecanica.Domain.Estoque.Entities.AlertaEstoque", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("DataCriacao")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DataResolucao")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DataVisualizacao")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("NomePeca")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("PecaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("QuantidadeDisponivel")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("QuantidadeMinima")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DataResolucao");
+
+                    b.HasIndex("PecaId")
+                        .IsUnique()
+                        .HasFilter("\"DataResolucao\" IS NULL");
+
+                    b.ToTable("AlertasEstoque", (string)null);
+                });
+
             modelBuilder.Entity("OficinaMecanica.Domain.Estoque.Entities.Peca", b =>
                 {
                     b.Property<Guid>("Id")
@@ -324,6 +364,9 @@ namespace OficinaMecanica.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("DataFinalizacao")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DataInicioExecucao")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Diagnostico")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
@@ -392,6 +435,9 @@ namespace OficinaMecanica.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("OrdemDeServicoId");
 
+                    b.HasIndex("OrdemDeServicoId", "Versao")
+                        .IsUnique();
+
                     b.ToTable("Orcamentos", (string)null);
                 });
 
@@ -409,6 +455,9 @@ namespace OficinaMecanica.Infrastructure.Persistence.Migrations
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("text");
+
+                    b.Property<bool>("DeveAlterarSenha")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
@@ -451,6 +500,10 @@ namespace OficinaMecanica.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(256)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ClienteId")
+                        .IsUnique()
+                        .HasFilter("\"ClienteId\" IS NOT NULL");
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
@@ -565,6 +618,12 @@ namespace OficinaMecanica.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("OficinaMecanica.Domain.Atendimento.Entities.Veiculo", b =>
                 {
+                    b.HasOne("OficinaMecanica.Domain.Atendimento.Entities.Cliente", null)
+                        .WithMany()
+                        .HasForeignKey("ClienteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.OwnsOne("OficinaMecanica.Domain.Atendimento.ValueObjects.Placa", "Placa", b1 =>
                         {
                             b1.Property<Guid>("VeiculoId")
@@ -591,8 +650,23 @@ namespace OficinaMecanica.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("OficinaMecanica.Domain.Estoque.Entities.AlertaEstoque", b =>
+                {
+                    b.HasOne("OficinaMecanica.Domain.Estoque.Entities.Peca", null)
+                        .WithMany()
+                        .HasForeignKey("PecaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("OficinaMecanica.Domain.Estoque.Entities.Reserva", b =>
                 {
+                    b.HasOne("OficinaMecanica.Domain.Oficina.Entities.OrdemDeServico", null)
+                        .WithMany()
+                        .HasForeignKey("OrdemDeServicoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("OficinaMecanica.Domain.Estoque.Entities.Peca", null)
                         .WithMany("Reservas")
                         .HasForeignKey("PecaId")
@@ -602,6 +676,18 @@ namespace OficinaMecanica.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("OficinaMecanica.Domain.Oficina.Entities.OrdemDeServico", b =>
                 {
+                    b.HasOne("OficinaMecanica.Domain.Atendimento.Entities.Cliente", null)
+                        .WithMany()
+                        .HasForeignKey("ClienteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("OficinaMecanica.Domain.Atendimento.Entities.Veiculo", null)
+                        .WithMany()
+                        .HasForeignKey("VeiculoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.OwnsMany("OficinaMecanica.Domain.Oficina.Entities.ItemOS", "Itens", b1 =>
                         {
                             b1.Property<Guid>("OrdemDeServicoId")
@@ -612,6 +698,12 @@ namespace OficinaMecanica.Infrastructure.Persistence.Migrations
                                 .HasColumnType("integer");
 
                             NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b1.Property<int>("Id"));
+
+                            b1.Property<DateTime?>("DataExecucao")
+                                .HasColumnType("timestamp with time zone");
+
+                            b1.Property<bool>("Executado")
+                                .HasColumnType("boolean");
 
                             b1.Property<string>("Observacao")
                                 .HasMaxLength(500)
@@ -628,10 +720,25 @@ namespace OficinaMecanica.Infrastructure.Persistence.Migrations
 
                             b1.HasKey("OrdemDeServicoId", "Id");
 
+                            b1.HasIndex("PecaId");
+
+                            b1.HasIndex("ServicoId");
+
                             b1.ToTable("ItensOrdemDeServico", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("OrdemDeServicoId");
+
+                            b1.HasOne("OficinaMecanica.Domain.Estoque.Entities.Peca", null)
+                                .WithMany()
+                                .HasForeignKey("PecaId")
+                                .OnDelete(DeleteBehavior.Restrict);
+
+                            b1.HasOne("OficinaMecanica.Domain.CatalogoServicos.Entities.Servico", null)
+                                .WithMany()
+                                .HasForeignKey("ServicoId")
+                                .OnDelete(DeleteBehavior.Restrict)
+                                .IsRequired();
                         });
 
                     b.Navigation("Itens");
@@ -639,6 +746,12 @@ namespace OficinaMecanica.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("OficinaMecanica.Domain.Orcamentacao.Entities.Orcamento", b =>
                 {
+                    b.HasOne("OficinaMecanica.Domain.Oficina.Entities.OrdemDeServico", null)
+                        .WithMany()
+                        .HasForeignKey("OrdemDeServicoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.OwnsMany("OficinaMecanica.Domain.Orcamentacao.ValueObjects.ItemOrcamento", "Itens", b1 =>
                         {
                             b1.Property<Guid>("OrcamentoId")
@@ -675,13 +788,35 @@ namespace OficinaMecanica.Infrastructure.Persistence.Migrations
 
                             b1.HasKey("OrcamentoId", "Id");
 
+                            b1.HasIndex("PecaId");
+
+                            b1.HasIndex("ServicoId");
+
                             b1.ToTable("ItensOrcamento", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("OrcamentoId");
+
+                            b1.HasOne("OficinaMecanica.Domain.Estoque.Entities.Peca", null)
+                                .WithMany()
+                                .HasForeignKey("PecaId")
+                                .OnDelete(DeleteBehavior.Restrict);
+
+                            b1.HasOne("OficinaMecanica.Domain.CatalogoServicos.Entities.Servico", null)
+                                .WithMany()
+                                .HasForeignKey("ServicoId")
+                                .OnDelete(DeleteBehavior.Restrict);
                         });
 
                     b.Navigation("Itens");
+                });
+
+            modelBuilder.Entity("OficinaMecanica.Infrastructure.Identity.UsuarioSistema", b =>
+                {
+                    b.HasOne("OficinaMecanica.Domain.Atendimento.Entities.Cliente", null)
+                        .WithMany()
+                        .HasForeignKey("ClienteId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("OficinaMecanica.Domain.Estoque.Entities.Peca", b =>

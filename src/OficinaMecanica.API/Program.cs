@@ -4,9 +4,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OficinaMecanica.Application;
+using OficinaMecanica.Application.Common.Interfaces;
 using OficinaMecanica.API.ExceptionHandling;
 using OficinaMecanica.Infrastructure;
 using OficinaMecanica.Infrastructure.Identity;
+using OficinaMecanica.API.OpenApi;
+using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -52,6 +55,8 @@ builder.Services.AddSwaggerGen(options =>
     options.SwaggerDoc("v1", new OpenApiInfo { Title = "Oficina Mecanica API", Version = "v1", Description = "API do Sistema Integrado de Atendimento e Execucao de Servicos da Oficina Mecanica" });
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme { Name = "Authorization", Type = SecuritySchemeType.Http, Scheme = "bearer", BearerFormat = "JWT", In = ParameterLocation.Header, Description = "Informe o token JWT obtido em /api/auth/login" });
     options.AddSecurityRequirement(new OpenApiSecurityRequirement { [new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } }] = Array.Empty<string>() });
+    options.OperationFilter<ApiDocumentationOperationFilter>();
+    options.OrderActionsBy(apiDescription => $"{apiDescription.ActionDescriptor.RouteValues["controller"]}_{apiDescription.RelativePath}");
 });
 
 var app = builder.Build();
@@ -81,6 +86,37 @@ app.UseStatusCodePages(async statusCodeContext =>
 });
 
 app.UseAuthentication();
+
+app.Use(async (httpContext, next) =>
+{
+    if (httpContext.User.Identity?.IsAuthenticated == true)
+    {
+        var usuarioId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var identityService = httpContext.RequestServices.GetRequiredService<IIdentityService>();
+        var estadoAcesso = string.IsNullOrWhiteSpace(usuarioId) ? null : await identityService.ObterEstadoAcessoAsync(usuarioId, httpContext.RequestAborted);
+
+        if (estadoAcesso is null || !estadoAcesso.Ativo)
+        {
+            httpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            var problemDetailsService = httpContext.RequestServices.GetRequiredService<IProblemDetailsService>();
+            await problemDetailsService.TryWriteAsync(new ProblemDetailsContext { HttpContext = httpContext, ProblemDetails = new ProblemDetails { Status = StatusCodes.Status401Unauthorized, Title = "Usuario inativo", Detail = "O acesso deste usuario esta desativado.", Instance = httpContext.Request.Path } });
+            return;
+        }
+
+        var rotaAlteracaoSenha = httpContext.Request.Path.Equals("/api/auth/alterar-senha", StringComparison.OrdinalIgnoreCase);
+
+        if (estadoAcesso.TrocaSenhaObrigatoria && !rotaAlteracaoSenha)
+        {
+            httpContext.Response.StatusCode = StatusCodes.Status403Forbidden;
+            var problemDetailsService = httpContext.RequestServices.GetRequiredService<IProblemDetailsService>();
+            await problemDetailsService.TryWriteAsync(new ProblemDetailsContext { HttpContext = httpContext, ProblemDetails = new ProblemDetails { Status = StatusCodes.Status403Forbidden, Title = "Troca de senha obrigatoria", Detail = "Altere a senha temporaria antes de acessar os demais recursos.", Instance = httpContext.Request.Path } });
+            return;
+        }
+    }
+
+    await next();
+});
+
 app.UseAuthorization();
 
 app.MapControllers();

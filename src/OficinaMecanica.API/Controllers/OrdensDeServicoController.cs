@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OficinaMecanica.Application.UseCases.Oficina.Commands;
 using OficinaMecanica.Application.UseCases.Oficina.Queries;
+using OficinaMecanica.API.Extensions;
 using OficinaMecanica.Domain.Oficina.Enums;
 using System.Security.Claims;
 
@@ -27,7 +28,7 @@ public sealed class OrdensDeServicoController : ControllerBase
 
         if (result.IsFailure)
         {
-            return BadRequest(new { erro = result.Error });
+            return this.ToProblem(result);
         }
 
         return CreatedAtAction(nameof(Consultar), new { ordemDeServicoId = result.Value }, new { id = result.Value });
@@ -41,7 +42,7 @@ public sealed class OrdensDeServicoController : ControllerBase
 
         if (result.IsFailure)
         {
-            return NotFound(new { erro = result.Error });
+            return this.ToProblem(result);
         }
 
         return Ok(result.Value);
@@ -56,6 +57,15 @@ public sealed class OrdensDeServicoController : ControllerBase
         return Ok(ordensDeServico);
     }
 
+    [HttpGet("indicadores")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ObterIndicadores(CancellationToken cancellationToken)
+    {
+        var indicadores = await _mediator.Send(new ObterIndicadoresOficinaQuery(), cancellationToken);
+
+        return Ok(indicadores);
+    }
+
     [HttpPatch("{ordemDeServicoId:guid}/iniciar-diagnostico")]
     [Authorize(Roles = "Admin,Mecanico")]
     public async Task<IActionResult> IniciarDiagnostico(Guid ordemDeServicoId, IniciarDiagnosticoRequest request, CancellationToken cancellationToken)
@@ -64,7 +74,7 @@ public sealed class OrdensDeServicoController : ControllerBase
 
         if (result.IsFailure)
         {
-            return BadRequest(new { erro = result.Error });
+            return this.ToProblem(result);
         }
 
         return NoContent();
@@ -79,7 +89,7 @@ public sealed class OrdensDeServicoController : ControllerBase
 
         if (result.IsFailure)
         {
-            return BadRequest(new { erro = result.Error });
+            return this.ToProblem(result);
         }
 
         return NoContent();
@@ -93,7 +103,21 @@ public sealed class OrdensDeServicoController : ControllerBase
 
         if (result.IsFailure)
         {
-            return BadRequest(new { erro = result.Error });
+            return this.ToProblem(result);
+        }
+
+        return NoContent();
+    }
+
+    [HttpPatch("{ordemDeServicoId:guid}/servicos/{servicoId:guid}/executar")]
+    [Authorize(Roles = "Admin,Mecanico")]
+    public async Task<IActionResult> RegistrarServicoExecutado(Guid ordemDeServicoId, Guid servicoId, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new RegistrarServicoExecutadoCommand(ordemDeServicoId, servicoId), cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return this.ToProblem(result);
         }
 
         return NoContent();
@@ -107,7 +131,7 @@ public sealed class OrdensDeServicoController : ControllerBase
 
         if (result.IsFailure)
         {
-            return BadRequest(new { erro = result.Error });
+            return this.ToProblem(result);
         }
 
         return NoContent();
@@ -121,7 +145,7 @@ public sealed class OrdensDeServicoController : ControllerBase
 
         if (result.IsFailure)
         {
-            return BadRequest(new { erro = result.Error });
+            return this.ToProblem(result);
         }
 
         return NoContent();
@@ -140,7 +164,7 @@ public sealed class OrdensDeServicoController : ControllerBase
 
         if (result.IsFailure)
         {
-            return NotFound(new { erro = result.Error });
+            return this.ToProblem(result);
         }
 
         if (result.Value.ClienteId != clienteId)
@@ -149,6 +173,20 @@ public sealed class OrdensDeServicoController : ControllerBase
         }
 
         return Ok(result.Value);
+    }
+
+    [HttpGet("minhas")]
+    [Authorize(Roles = "Cliente")]
+    public async Task<IActionResult> ListarMinhasOrdensDeServico([FromQuery] StatusOS? status, [FromQuery] int pagina = 1, [FromQuery] int tamanhoPagina = 20, CancellationToken cancellationToken = default)
+    {
+        if (!Guid.TryParse(User.FindFirstValue("cliente_id"), out var clienteId))
+        {
+            return Forbid();
+        }
+
+        var ordensDeServico = await _mediator.Send(new ListarOrdensDeServicoQuery(clienteId, status, pagina, tamanhoPagina), cancellationToken);
+
+        return Ok(ordensDeServico);
     }
 }
 

@@ -33,6 +33,7 @@ public class AppDbContext : IdentityDbContext<UsuarioSistema>, IUnitOfWork
     public DbSet<Orcamento> Orcamentos => Set<Orcamento>();
     public DbSet<Peca> Pecas => Set<Peca>();
     public DbSet<Servico> Servicos => Set<Servico>();
+    public DbSet<AlertaEstoque> AlertasEstoque => Set<AlertaEstoque>();
 
     public AppDbContext(DbContextOptions<AppDbContext> options, IMediator mediator, ILogger<AppDbContext> logger)
     : base(options)
@@ -43,8 +44,8 @@ public class AppDbContext : IdentityDbContext<UsuarioSistema>, IUnitOfWork
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
         base.OnModelCreating(modelBuilder);
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
     }
 
     /// <summary>

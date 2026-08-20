@@ -60,7 +60,8 @@ public sealed class AprovarOrcamentoHandlerTests
         var ordemDeServico = new OrdemDeServico("OS-0001", Guid.NewGuid(), Guid.NewGuid());
         ordemDeServico.IniciarDiagnostico(Guid.NewGuid());
         ordemDeServico.RegistrarDiagnostico("Diagnostico", [new ItemOS(Guid.NewGuid(), peca.Id, 1)]);
-        var itens = quantidades.Select(quantidade => new ItemOrcamento(peca.Nome, TipoItem.Peca, quantidade, peca.PrecoUnitario, pecaId: peca.Id)).ToList();
+        var itens = new List<ItemOrcamento> { new("Troca de filtro", TipoItem.Servico, 1, 100m, servicoId: Guid.NewGuid()) };
+        itens.AddRange(quantidades.Select(quantidade => new ItemOrcamento(peca.Nome, TipoItem.Peca, quantidade, peca.PrecoUnitario, pecaId: peca.Id)));
         var orcamento = new Orcamento(ordemDeServico.Id, 1, itens);
         ordemDeServico.VincularOrcamento(orcamento.Id);
         orcamento.Enviar();
@@ -104,6 +105,7 @@ public sealed class AprovarOrcamentoHandlerTests
         public Task<Orcamento?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult<Orcamento?>(_orcamento.Id == id ? _orcamento : null);
         public Task<Orcamento?> GetByOrdemDeServicoIdAsync(Guid ordemDeServicoId, CancellationToken cancellationToken = default) => Task.FromResult<Orcamento?>(_orcamento.OrdemDeServicoId == ordemDeServicoId ? _orcamento : null);
         public Task<int> GetVersaoAtualAsync(Guid ordemDeServicoId, CancellationToken cancellationToken = default) => Task.FromResult(_orcamento.Versao);
+        public Task<IReadOnlyList<Orcamento>> GetPagedByClienteIdAsync(Guid clienteId, int page, int pageSize, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<Orcamento>>([]);
         public Task AddAsync(Orcamento entity, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public void Update(Orcamento entity) { }
         public void Remove(Orcamento entity) { }
@@ -121,9 +123,11 @@ public sealed class AprovarOrcamentoHandlerTests
         public Task<OrdemDeServico?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult<OrdemDeServico?>(_ordemDeServico.Id == id ? _ordemDeServico : null);
         public Task<OrdemDeServico?> GetByNumeroAsync(string numero, CancellationToken cancellationToken = default) => Task.FromResult<OrdemDeServico?>(_ordemDeServico.Numero == numero ? _ordemDeServico : null);
         public Task<IReadOnlyList<OrdemDeServico>> GetByClienteIdAsync(Guid clienteId, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<OrdemDeServico>>([]);
+        public Task<IReadOnlyList<OrdemDeServico>> GetPagedByClienteIdAsync(Guid clienteId, StatusOS? status, int page, int pageSize, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<OrdemDeServico>>([]);
         public Task<IReadOnlyList<OrdemDeServico>> GetByStatusAsync(StatusOS status, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<OrdemDeServico>>([]);
         public Task<IReadOnlyList<OrdemDeServico>> GetAllAsync(int page, int pageSize, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<OrdemDeServico>>([]);
         public Task<bool> ExistsByVeiculoIdAsync(Guid veiculoId, CancellationToken cancellationToken = default) => Task.FromResult(false);
+        public Task<TimeSpan?> GetTempoMedioExecucaoAsync(CancellationToken cancellationToken = default) => Task.FromResult<TimeSpan?>(null);
         public Task<string> GerarProximoNumeroAsync(CancellationToken cancellationToken = default) => Task.FromResult("OS-0002");
         public Task AddAsync(OrdemDeServico entity, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public void Update(OrdemDeServico entity) { }
@@ -143,6 +147,8 @@ public sealed class AprovarOrcamentoHandlerTests
         public Task<Peca?> GetByCodigoAsync(string codigo, CancellationToken cancellationToken = default) => Task.FromResult<Peca?>(_peca.Codigo == codigo ? _peca : null);
         public Task<IReadOnlyList<Peca>> GetAllAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<Peca>>([_peca]);
         public Task<IReadOnlyList<Peca>> GetComEstoqueBaixoAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<Peca>>([]);
+        public Task<IReadOnlyList<Peca>> GetPagedAsync(bool somenteEstoqueBaixo, int page, int pageSize, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<Peca>>([_peca]);
+        public Task<bool> HasReferencesAsync(Guid pecaId, CancellationToken cancellationToken = default) => Task.FromResult(false);
         public Task AddAsync(Peca entity, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public void Update(Peca entity) { }
         public void Remove(Peca entity) { }

@@ -2,6 +2,7 @@ using MediatR;
 using OficinaMecanica.Application.Common.Interfaces;
 using OficinaMecanica.Domain.Common;
 using OficinaMecanica.Domain.Estoque.Entities;
+using OficinaMecanica.Domain.Oficina.Entities;
 using OficinaMecanica.Domain.Oficina.Enums;
 using OficinaMecanica.Domain.Orcamentacao.Enums;
 
@@ -33,7 +34,7 @@ public sealed class AprovarOrcamentoHandler : IRequestHandler<AprovarOrcamentoCo
 
         if (orcamento is null)
         {
-            return Result.Failure("Orcamento nao encontrado");
+            return Result.NotFound("Orcamento nao encontrado");
         }
 
         if (orcamento.Status != StatusOrcamento.Enviado)
@@ -45,12 +46,19 @@ public sealed class AprovarOrcamentoHandler : IRequestHandler<AprovarOrcamentoCo
 
         if (ordemDeServico is null)
         {
-            return Result.Failure("Ordem de Servico nao encontrada");
+            return Result.NotFound("Ordem de Servico nao encontrada");
         }
 
         if (ordemDeServico.Status != StatusOS.AguardandoAprovacao)
         {
             return Result.Failure("OS deve estar Aguardando Aprovacao para iniciar execucao");
+        }
+
+        var itensExecucao = orcamento.Itens.Where(item => item.Tipo == TipoItem.Servico && item.ServicoId.HasValue).Select(item => new ItemOS(item.ServicoId!.Value, null, item.Quantidade)).ToList();
+
+        if (itensExecucao.Count == 0)
+        {
+            return Result.Failure("Orcamento aprovado deve possuir pelo menos um servico");
         }
 
         var quantidadesPorPeca = orcamento.Itens.Where(item => item.Tipo == TipoItem.Peca && item.PecaId.HasValue).GroupBy(item => item.PecaId!.Value).ToDictionary(grupo => grupo.Key, grupo => grupo.Sum(item => item.Quantidade));
@@ -62,12 +70,12 @@ public sealed class AprovarOrcamentoHandler : IRequestHandler<AprovarOrcamentoCo
 
             if (peca is null)
             {
-                return Result.Failure($"Peca {quantidadePorPeca.Key} nao encontrada");
+                return Result.NotFound($"Peca {quantidadePorPeca.Key} nao encontrada");
             }
 
             if (peca.QuantidadeDisponivel < quantidadePorPeca.Value)
             {
-                return Result.Failure($"Estoque insuficiente para {peca.Nome}. Disponivel: {peca.QuantidadeDisponivel}, Solicitado: {quantidadePorPeca.Value}");
+                return Result.Conflict($"Estoque insuficiente para {peca.Nome}. Disponivel: {peca.QuantidadeDisponivel}, Solicitado: {quantidadePorPeca.Value}");
             }
 
             pecas.Add((peca, quantidadePorPeca.Value));
@@ -79,10 +87,17 @@ public sealed class AprovarOrcamentoHandler : IRequestHandler<AprovarOrcamentoCo
 
             if (reservaResult.IsFailure)
             {
-                return Result.Failure(reservaResult.Error);
+                return Result.Failure(reservaResult.Error, reservaResult.ErrorType);
             }
 
             _pecaRepository.Update(item.Peca);
+        }
+
+        var preparacaoResult = ordemDeServico.PrepararItensExecucao(itensExecucao);
+
+        if (preparacaoResult.IsFailure)
+        {
+            return preparacaoResult;
         }
 
         var aprovacaoResult = orcamento.Aprovar();

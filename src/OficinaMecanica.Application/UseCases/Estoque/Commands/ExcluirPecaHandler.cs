@@ -21,12 +21,12 @@ public sealed class ExcluirPecaHandler : IRequestHandler<ExcluirPecaCommand, Res
 
         if (peca is null)
         {
-            return Result.Failure("Peca nao encontrada");
+            return Result.NotFound("Peca nao encontrada");
         }
 
-        if (peca.Reservas.Count > 0)
+        if (peca.Reservas.Count > 0 || await _pecaRepository.HasReferencesAsync(peca.Id, cancellationToken))
         {
-            return Result.Failure("Peca possui historico de reservas e nao pode ser excluida");
+            return Result.Conflict("Peca possui historico ou registros vinculados e nao pode ser excluida");
         }
 
         _pecaRepository.Remove(peca);

@@ -30,14 +30,14 @@ public sealed class GerarOrcamentoHandler : IRequestHandler<GerarOrcamentoComman
 
         if (ordemDeServico is null)
         {
-            return Result.Failure<Guid>("Ordem de Servico nao encontrada");
+            return Result.NotFound<Guid>("Ordem de Servico nao encontrada");
         }
 
         var orcamentoAtual = await _orcamentoRepository.GetByOrdemDeServicoIdAsync(request.OrdemDeServicoId, cancellationToken);
 
         if (orcamentoAtual is not null && orcamentoAtual.Status != StatusOrcamento.Rejeitado && orcamentoAtual.Status != StatusOrcamento.Cancelado)
         {
-            return Result.Failure<Guid>("Ja existe um orcamento ativo para esta Ordem de Servico");
+            return Result.Conflict<Guid>("Ja existe um orcamento ativo para esta Ordem de Servico");
         }
 
         var itens = new List<ItemOrcamento>();
@@ -48,7 +48,7 @@ public sealed class GerarOrcamentoHandler : IRequestHandler<GerarOrcamentoComman
 
             if (servico is null || !servico.Ativo)
             {
-                return Result.Failure<Guid>($"Servico {itemOrdemDeServico.ServicoId} nao encontrado ou inativo");
+                return Result.NotFound<Guid>($"Servico {itemOrdemDeServico.ServicoId} nao encontrado ou inativo");
             }
 
             itens.Add(new ItemOrcamento(servico.Nome, TipoItem.Servico, itemOrdemDeServico.Quantidade, servico.PrecoBase, servicoId: servico.Id));
@@ -59,7 +59,7 @@ public sealed class GerarOrcamentoHandler : IRequestHandler<GerarOrcamentoComman
 
                 if (peca is null)
                 {
-                    return Result.Failure<Guid>($"Peca {itemOrdemDeServico.PecaId.Value} nao encontrada");
+                    return Result.NotFound<Guid>($"Peca {itemOrdemDeServico.PecaId.Value} nao encontrada");
                 }
 
                 itens.Add(new ItemOrcamento(peca.Nome, TipoItem.Peca, itemOrdemDeServico.Quantidade, peca.PrecoUnitario, pecaId: peca.Id));
@@ -72,7 +72,7 @@ public sealed class GerarOrcamentoHandler : IRequestHandler<GerarOrcamentoComman
 
         if (vinculoResult.IsFailure)
         {
-            return Result.Failure<Guid>(vinculoResult.Error);
+            return Result.Failure<Guid>(vinculoResult.Error, vinculoResult.ErrorType);
         }
 
         await _orcamentoRepository.AddAsync(orcamento, cancellationToken);

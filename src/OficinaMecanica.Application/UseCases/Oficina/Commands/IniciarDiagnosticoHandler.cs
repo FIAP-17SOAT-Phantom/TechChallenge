@@ -21,7 +21,7 @@ public sealed class IniciarDiagnosticoHandler : IRequestHandler<IniciarDiagnosti
 
         if (ordemDeServico is null)
         {
-            return Result.Failure("Ordem de Servico nao encontrada");
+            return Result.NotFound("Ordem de Servico nao encontrada");
         }
 
         var result = ordemDeServico.IniciarDiagnostico(request.MecanicoId);

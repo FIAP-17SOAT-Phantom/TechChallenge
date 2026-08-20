@@ -19,6 +19,8 @@ public class ServicoRepository : IServicoRepository
     public async Task<IReadOnlyList<Servico>> GetAllAsync(CancellationToken cancellationToken = default)
     => await _context.Servicos.AsNoTracking().ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Servico>> GetPagedAsync(bool somenteAtivos, int page, int pageSize, CancellationToken cancellationToken = default) => await _context.Servicos.Where(servico => !somenteAtivos || servico.Ativo).AsNoTracking().OrderBy(servico => servico.Nome).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+
     public async Task AddAsync(Servico entity, CancellationToken cancellationToken = default)
     => await _context.Servicos.AddAsync(entity, cancellationToken);
 

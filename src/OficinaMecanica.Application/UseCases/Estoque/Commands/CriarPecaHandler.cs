@@ -23,7 +23,7 @@ public sealed class CriarPecaHandler : IRequestHandler<CriarPecaCommand, Result<
 
         if (existente is not null)
         {
-            return Result.Failure<Guid>("Ja existe uma peca cadastrada com este codigo");
+            return Result.Conflict<Guid>("Ja existe uma peca cadastrada com este codigo");
         }
 
         var peca = new Peca(request.Nome, codigo, request.Descricao, request.PrecoUnitario, request.QuantidadeEmEstoque, request.QuantidadeMinima);

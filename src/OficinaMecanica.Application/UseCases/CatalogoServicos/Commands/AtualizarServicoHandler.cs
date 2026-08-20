@@ -21,7 +21,7 @@ public sealed class AtualizarServicoHandler : IRequestHandler<AtualizarServicoCo
 
         if (servico is null)
         {
-            return Result.Failure("Servico nao encontrado");
+            return Result.NotFound("Servico nao encontrado");
         }
 
         servico.Atualizar(request.Nome, request.Descricao, request.PrecoBase, request.TempoEstimadoMinutos);
