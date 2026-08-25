@@ -1160,3 +1160,30 @@ O esquema Bearer existente foi preservado. O usuario pode autenticar em `/api/au
 O `README.md` foi reescrito porque seus blocos Markdown estavam corrompidos. O novo guia registra variaveis obrigatorias, execucao Docker/local, primeiro acesso, fluxo completo, testes e links para a documentacao arquitetural.
 
 Com estes blocos, nao restam pendencias funcionais conhecidas no codigo da API da Fase 1. A validacao com PostgreSQL real, Docker Compose e testes de integracao permanece como etapa de ambiente, nao como funcionalidade ausente na API.
+
+### Execucao local sem Docker
+
+O .NET nao carrega arquivos `.env` nativamente. Foi adicionado um carregador local antes da criacao do `WebApplicationBuilder`, permitindo que Visual Studio e `dotnet run` encontrem o `.env` da raiz.
+
+As chaves `JWT_SECRET`, `ADMIN_EMAIL` e `ADMIN_PASSWORD` sao traduzidas para a hierarquia de configuracao usada pela API. Variaveis ja definidas no sistema nao sao sobrescritas. A execucao sem Docker continua exigindo uma instancia local ou remota do PostgreSQL.
+
+---
+
+## Bloco 24 - Validacao do Ambiente Docker
+
+O ambiente completo foi iniciado com Docker Compose usando Docker Desktop e validado em 24/08/2026.
+
+Resultados da verificacao:
+
+- container `db` em execucao e marcado como `healthy`;
+- container `api` em execucao e publicado em `http://localhost:8080`;
+- migrations conferidas automaticamente na inicializacao, com o banco atualizado;
+- roles e usuario administrativo conferidos pelo processo de seed;
+- documento OpenAPI em `/swagger/v1/swagger.json` respondendo HTTP 200;
+- login administrativo em `/api/auth/login` respondendo HTTP 200 e emitindo um token JWT.
+
+O PostgreSQL fica publicado na porta `5432` para ferramentas locais, enquanto a API utiliza o nome interno `db` na rede do Compose. Os avisos de Data Protection exibidos pelo ASP.NET Core nao impedem o uso de JWT nem a execucao da API; eles apenas informam que as chaves de Data Protection do container nao possuem persistencia externa configurada.
+
+Foi criado o documento `docs/guia-api-docker-postgresql.md`, reunindo a explicacao do fluxo interno da API, autenticacao, imagens e containers, rede do Compose, configuracao do PostgreSQL, persistencia em volume, migrations, comandos operacionais e acesso por DBeaver, pgAdmin ou `psql`.
+
+Foi criado tambem o roadmap `docs/roadmap-login-autenticacao-jwt.md`, que documenta o caminho completo do login pelo Controller, MediatR, validacao, Handler, Identity, PostgreSQL e geracao do JWT. O guia inclui primeiro acesso, senha temporaria, roles, middleware de estado do usuario, configuracoes e ordem recomendada de breakpoints.

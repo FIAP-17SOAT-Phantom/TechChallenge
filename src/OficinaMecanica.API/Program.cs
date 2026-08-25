@@ -9,8 +9,11 @@ using OficinaMecanica.API.ExceptionHandling;
 using OficinaMecanica.Infrastructure;
 using OficinaMecanica.Infrastructure.Identity;
 using OficinaMecanica.API.OpenApi;
+using OficinaMecanica.API.Configuration;
 using System.Security.Claims;
 using System.Text;
+
+DotEnvLoader.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -67,15 +67,15 @@ As migrations sao aplicadas automaticamente na inicializacao. O administrador in
 
 ## Execucao local
 
-Com PostgreSQL disponivel e as configuracoes definidas:
+O projeto carrega automaticamente o arquivo `.env` da raiz quando iniciado pelo Visual Studio ou por `dotnet run`. Variaveis de ambiente definidas no sistema possuem prioridade e nao sao sobrescritas.
+
+Com PostgreSQL disponivel na connection string configurada:
 
 ```powershell
-$env:Jwt__Secret='uma-chave-com-pelo-menos-32-bytes'
-$env:Authentication__SeedUsers__0__Email='admin@oficina.com'
-$env:Authentication__SeedUsers__0__Password='Admin@123456'
-$env:Authentication__SeedUsers__0__Role='Admin'
 dotnet run --project src/OficinaMecanica.API/OficinaMecanica.API.csproj
 ```
+
+Sem Docker, instale o PostgreSQL localmente e crie o banco `oficina_mecanica` com o usuario e senha definidos em `appsettings.json`, ou substitua `ConnectionStrings__DefaultConnection` no ambiente. As migrations sao aplicadas automaticamente.
 
 ## Primeiro acesso
 
@@ -120,6 +120,8 @@ Os testes de integracao com PostgreSQL real permanecem separados da finalizacao 
 | [Decisao arquitetural](docs/decisao-arquitetural-clean-architecture.md) | Clean Architecture |
 | [Decisao de banco](docs/decisao-banco-de-dados-postgresql.md) | PostgreSQL |
 | [Decisoes tecnicas](docs/decisoes-tecnicas-stack-completa.md) | Stack e justificativas |
+| [Guia da API, Docker e PostgreSQL](docs/guia-api-docker-postgresql.md) | Funcionamento da API, containers, banco, volume, migrations e acesso aos dados |
+| [Roadmap do login e JWT](docs/roadmap-login-autenticacao-jwt.md) | Caminho completo do Controller ao PostgreSQL, emissao do token e autorizacao |
 
 ## Grupo
 
