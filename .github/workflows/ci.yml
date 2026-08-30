@@ -1,0 +1,74 @@
+name: CI - Build, Test e Cobertura
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test-coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore src/OficinaMecanica.slnx
+
+      - name: Build
+        run: dotnet build src/OficinaMecanica.slnx --no-restore --configuration Release
+
+      - name: Test com cobertura
+        run: >
+          dotnet test src/OficinaMecanica.slnx
+          --no-build
+          --configuration Release
+          --collect:"XPlat Code Coverage"
+          --results-directory ./coverage
+          --logger "trx;LogFileName=test-results.trx"
+
+      - name: Instalar ReportGenerator
+        run: dotnet tool install --global dotnet-reportgenerator-globaltool
+
+      - name: Gerar relatorio de cobertura
+        run: >
+          reportgenerator
+          -reports:./coverage/**/coverage.cobertura.xml
+          -targetdir:./coverage/report
+          -reporttypes:"Html;TextSummary;MarkdownSummaryGithub"
+
+      - name: Publicar resumo de cobertura
+        if: always()
+        run: cat ./coverage/report/SummaryGithub.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload relatorio de cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: ./coverage/report
+
+  scan-vulnerabilidades:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore src/OficinaMecanica.slnx
+
+      - name: Scan de pacotes vulneraveis
+        run: dotnet list src/OficinaMecanica.slnx package --vulnerable --include-transitive
