@@ -3,5 +3,6 @@
   <Project Path="OficinaMecanica.Application/OficinaMecanica.Application.csproj" />
   <Project Path="OficinaMecanica.Domain/OficinaMecanica.Domain.csproj" />
   <Project Path="OficinaMecanica.Infrastructure/OficinaMecanica.Infrastructure.csproj" />
+  <Project Path="OficinaMecanica.IntegrationTests/OficinaMecanica.IntegrationTests.csproj" />
   <Project Path="OficinaMecanica.Tests/OficinaMecanica.Tests.csproj" />
 </Solution>

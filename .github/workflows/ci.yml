@@ -7,7 +7,8 @@ on:
     branches: [ main ]
 
 jobs:
-  build-test-coverage:
+  build-test-unitarios:
+    name: Build + Testes Unitarios + Cobertura
     runs-on: ubuntu-latest
 
     steps:
@@ -25,14 +26,14 @@ jobs:
       - name: Build
         run: dotnet build src/OficinaMecanica.slnx --no-restore --configuration Release
 
-      - name: Test com cobertura
+      - name: Testes unitarios com cobertura
         run: >
-          dotnet test src/OficinaMecanica.slnx
+          dotnet test src/OficinaMecanica.Tests/OficinaMecanica.Tests.csproj
           --no-build
           --configuration Release
           --collect:"XPlat Code Coverage"
           --results-directory ./coverage
-          --logger "trx;LogFileName=test-results.trx"
+          --logger "trx;LogFileName=unit-tests.trx"
 
       - name: Instalar ReportGenerator
         run: dotnet tool install --global dotnet-reportgenerator-globaltool
@@ -55,7 +56,35 @@ jobs:
           name: coverage-report
           path: ./coverage/report
 
+  testes-integracao:
+    name: Testes de Integracao (TestContainers)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore src/OficinaMecanica.slnx
+
+      - name: Build
+        run: dotnet build src/OficinaMecanica.slnx --no-restore --configuration Release
+
+      # O runner Ubuntu ja tem Docker instalado - TestContainers sobe o PostgreSQL automaticamente
+      - name: Testes de integracao
+        run: >
+          dotnet test src/OficinaMecanica.IntegrationTests/OficinaMecanica.IntegrationTests.csproj
+          --no-build
+          --configuration Release
+          --logger "trx;LogFileName=integration-tests.trx"
+
   scan-vulnerabilidades:
+    name: Scan de Vulnerabilidades
     runs-on: ubuntu-latest
 
     steps:

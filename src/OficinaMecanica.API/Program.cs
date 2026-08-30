@@ -127,3 +127,6 @@ app.MapControllers();
 await app.Services.SeedIdentityAsync();
 
 app.Run();
+
+// Expoe a classe Program para testes de integracao (WebApplicationFactory)
+public partial class Program { }

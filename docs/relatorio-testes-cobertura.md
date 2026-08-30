@@ -66,12 +66,37 @@ Uma política de Controle de Aplicativo bloqueou este arquivo. (0x800711C7)
 
 3. **Desativar temporariamente o Smart App Control** (Configurações do Windows → Privacidade e segurança → Smart App Control). Requer reinstalação do Windows para reativar, então não recomendado.
 
+## Testes de Integração
+
+Projeto: `OficinaMecanica.IntegrationTests`
+
+Usa **TestContainers** para subir um PostgreSQL 16 real em Docker e **WebApplicationFactory** para hospedar a API em memória. Exercitam o pipeline completo (HTTP → Controller → MediatR → Identity/EF Core → banco real).
+
+| Cenário | Teste |
+|---------|-------|
+| Login com credenciais válidas retorna token | AutenticacaoIntegrationTests |
+| Login com senha incorreta é rejeitado | AutenticacaoIntegrationTests |
+| Login com email inválido retorna 400 | AutenticacaoIntegrationTests |
+| Rota protegida sem token retorna 401 | AutorizacaoIntegrationTests |
+| Rota protegida com token inválido retorna 401 | AutorizacaoIntegrationTests |
+| Criar + consultar serviço persiste no banco | ServicosFluxoIntegrationTests |
+| Criar serviço com dados inválidos retorna 400 | ServicosFluxoIntegrationTests |
+
+**Requisito:** Docker em execução. Os testes rodam automaticamente no CI (runner Ubuntu já tem Docker). Localmente, requerem Docker Desktop instalado.
+
 ## Comando padrão de teste
 
 ```bash
-# Apenas executar testes
-dotnet test src/OficinaMecanica.slnx
+# Testes unitários
+dotnet test src/OficinaMecanica.Tests/OficinaMecanica.Tests.csproj
 
-# Com cobertura (em ambiente sem WDAC)
-dotnet test src/OficinaMecanica.slnx --collect:"XPlat Code Coverage"
+# Testes de integração (requer Docker)
+dotnet test src/OficinaMecanica.IntegrationTests/OficinaMecanica.IntegrationTests.csproj
+
+# Com cobertura (em ambiente sem WDAC/Smart App Control)
+dotnet test src/OficinaMecanica.Tests/OficinaMecanica.Tests.csproj --collect:"XPlat Code Coverage"
 ```
+
+## Nota sobre execução local (importante)
+
+Nesta máquina de desenvolvimento (Windows 11 com Smart App Control ativo), a execução via `dotnet test` pode falhar com `FileLoadException (0x800711C7)` após rebuilds, porque o Smart App Control bloqueia assemblies recém-compilados até que o serviço de reputação da Microsoft os libere. **Isso não indica falha nos testes** — os 96 testes unitários passam de forma consistente em ambiente sem WDAC (CI/Ubuntu). O pipeline de CI é a fonte de verdade para execução de testes e medição de cobertura.
