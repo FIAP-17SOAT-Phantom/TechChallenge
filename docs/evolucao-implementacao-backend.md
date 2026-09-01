@@ -1256,3 +1256,32 @@ Validacao posterior as alteracoes:
 - Docker Compose: configuracao valida.
 
 Os numeros definitivos de issues e o Security Rating precisam ser confirmados por um novo push, pois somente o SonarQube Cloud recalcula o dashboard.
+
+### Resultado da nova analise
+
+A nova execucao do SonarQube Cloud foi concluida em 01/09/2026 e confirmou o resultado das correcoes:
+
+- Quality Gate: aprovado;
+- issues abertas: 2, ante 48 na analise anterior;
+- Security Rating: A, ante C na analise anterior;
+- security issues: 0, ante 9 na analise anterior;
+- duplicacao: 0,0%, ante 3,4% na analise anterior;
+- cobertura: 77,8%, mantida conforme o escopo declarado no pipeline;
+- 9 security issues encerradas pela nova analise.
+
+As duas issues remanescentes devem ser consultadas individualmente na aba `Analysis` para decidir entre correcao ou justificativa tecnica.
+
+A tela `Analysis > Summary`, no recorte `New Code`, confirmou adicionalmente:
+
+- novas issues: 0;
+- issues aceitas: 0;
+- cobertura do codigo novo: 83,33%, acima do requisito de 80%;
+- duplicacao no codigo novo: 0,0%;
+- security hotspots no codigo novo: 0;
+- Quality Gate `Sonar way`: aprovado.
+
+Portanto, as duas issues exibidas no Overview pertencem ao codigo geral ou ao historico anterior do projeto, e nao ao codigo introduzido nesta rodada.
+
+### Evidencia no README
+
+O `README.md` passou a apresentar uma tabela direta com Quality Gate, issues, cobertura, duplicacao, security issues, hotspots e Security Rating, separando codigo novo de codigo geral. Tambem foram registrados a data, o commit analisado, a evolucao em relacao a primeira medicao e o link para o dashboard do SonarQube Cloud. A orientacao de execucao local foi atualizada para refletir que as credenciais do PostgreSQL agora ficam em variaveis externas, e nao em `appsettings.json`.

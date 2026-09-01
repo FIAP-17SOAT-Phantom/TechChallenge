@@ -77,7 +77,7 @@ Com PostgreSQL disponivel na connection string configurada:
 dotnet run --project src/OficinaMecanica.API/OficinaMecanica.API.csproj
 ```
 
-Sem Docker, instale o PostgreSQL localmente e crie o banco `oficina_mecanica` com o usuario e senha definidos em `appsettings.json`, ou substitua `ConnectionStrings__DefaultConnection` no ambiente. As migrations sao aplicadas automaticamente.
+Sem Docker, instale o PostgreSQL localmente e configure `POSTGRES_DB`, `POSTGRES_USER` e `POSTGRES_PASSWORD` no `.env`, ou forneca `ConnectionStrings__DefaultConnection` diretamente no ambiente. As migrations sao aplicadas automaticamente.
 
 ## Primeiro acesso
 
@@ -201,7 +201,23 @@ O pipeline do GitHub Actions executa build Release, testes unitarios com cobertu
 - scan NuGet direto e transitivo sem vulnerabilidades conhecidas na ultima validacao;
 - cobertura de linhas de 82,03% na camada Domain.
 
-Os detalhes e achados corrigidos estao no [Relatorio de vulnerabilidades](docs/relatorio-vulnerabilidades.md). A preparacao para analise de bugs, code smells, duplicacao, hotspots e Quality Gate esta descrita em [Qualidade com Sonar](docs/qualidade-sonar.md). Metricas Sonar somente devem ser publicadas depois de uma execucao real vinculada ao repositorio.
+### Resultado do SonarQube Cloud
+
+A analise do commit `12c2716d`, executada em 01/09/2026 pelo GitHub Actions, apresentou Quality Gate aprovado e Security Rating A.
+
+| Metrica | Codigo novo | Codigo geral |
+|---------|------------:|-------------:|
+| Quality Gate | Aprovado | Aprovado |
+| Issues | 0 | 2 historicas |
+| Cobertura | 83,33% | 77,8% |
+| Duplicacao | 0,0% | 0,0% |
+| Security issues | 0 | 0 |
+| Security hotspots | 0 | Nao exibido no recorte geral |
+| Security Rating | Nao exibido no recorte de codigo novo | A |
+
+A cobertura do codigo novo supera o minimo de 80% configurado no Quality Gate. A verificacao de dependencias NuGet diretas e transitivas tambem nao encontrou vulnerabilidades conhecidas. Na comparacao com a primeira analise, 46 de 48 issues foram encerradas, as 9 security issues foram eliminadas e o Security Rating evoluiu de C para A.
+
+Os detalhes, o escopo das metricas e os achados corrigidos estao no [Relatorio de vulnerabilidades](docs/relatorio-vulnerabilidades.md) e em [Qualidade com Sonar](docs/qualidade-sonar.md). O [dashboard do SonarQube Cloud](https://sonarcloud.io/project/overview?id=FIAP-17SOAT-Phantom_TechChallenge) apresenta a analise vinculada ao repositorio.
 
 ## Execucao local e deploy
 
@@ -225,7 +241,7 @@ Em um deploy, `JWT_SECRET`, credenciais administrativas e connection string deve
 | [Exemplos da API](docs/exemplos-api.md) | Requisicoes e respostas dos principais fluxos |
 | [Testes e cobertura](docs/relatorio-testes-cobertura.md) | Organizacao, execucao e cobertura dos dominios criticos |
 | [Relatorio de vulnerabilidades](docs/relatorio-vulnerabilidades.md) | Scan de dependencias, achados e correcoes |
-| [Qualidade com Sonar](docs/qualidade-sonar.md) | Metricas esperadas e configuracao pendente de credenciais externas |
+| [Qualidade com Sonar](docs/qualidade-sonar.md) | Configuracao, metricas obtidas, linha de base e correcoes do SonarQube Cloud |
 
 ## Grupo
 

@@ -121,3 +121,22 @@ Antes de apresentar as metricas como resultado final, deve-se enviar estas alter
 - melhoria do Security Rating C;
 - permanencia do Quality Gate aprovado;
 - cobertura e duplicacao atualizadas.
+
+## Resultado apos as correcoes
+
+O dashboard atualizado em 01/09/2026 apresentou:
+
+| Metrica | Resultado |
+|---------|-----------|
+| Quality Gate | Passed |
+| Issues abertas | 2 |
+| Security Rating | A |
+| Security issues | 0 |
+| Duplicacao | 0,0% |
+| Cobertura | 77,8% |
+
+Em comparacao com a linha de base, foram encerradas 46 das 48 issues, todas as 9 security issues foram eliminadas, o Security Rating evoluiu de C para A e a duplicacao caiu de 3,4% para 0,0%. Restam duas issues de qualidade a serem classificadas pela equipe na tela de analise detalhada.
+
+### Quality Gate do codigo novo
+
+Na aba `Analysis > Summary`, o recorte de codigo novo apresentou 0 novas issues, 0 issues aceitas, 83,33% de cobertura, 0,0% de duplicacao e 0 security hotspots. A cobertura supera o requisito de 80% configurado pelo Quality Gate. Assim, as duas issues do codigo geral sao anteriores ao periodo de New Code e nao comprometem o gate da entrega atual.
