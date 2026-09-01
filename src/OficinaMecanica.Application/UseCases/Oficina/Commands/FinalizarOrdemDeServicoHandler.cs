@@ -43,41 +43,18 @@ public sealed class FinalizarOrdemDeServicoHandler : IRequestHandler<FinalizarOr
             return Result.NotFound("Orcamento aprovado nao encontrado");
         }
 
-        var pecas = new List<Peca>();
-        var pecaIds = orcamento.Itens.Where(item => item.Tipo == TipoItem.Peca && item.PecaId.HasValue).Select(item => item.PecaId!.Value).Distinct();
+        var pecasResult = await ObterPecasReservadasAsync(orcamento.Itens.Where(item => item.Tipo == TipoItem.Peca && item.PecaId.HasValue).Select(item => item.PecaId!.Value).Distinct(), ordemDeServico.Id, cancellationToken);
 
-        foreach (var pecaId in pecaIds)
+        if (pecasResult.IsFailure)
         {
-            var peca = await _pecaRepository.GetByIdAsync(pecaId, cancellationToken);
-
-            if (peca is null)
-            {
-                return Result.NotFound($"Peca {pecaId} nao encontrada");
-            }
-
-            if (!peca.Reservas.Any(reserva => reserva.OrdemDeServicoId == ordemDeServico.Id && reserva.Status == StatusReserva.Ativa))
-            {
-                return Result.Conflict($"Reserva ativa da peca {peca.Nome} nao encontrada");
-            }
-
-            pecas.Add(peca);
+            return Result.Failure(pecasResult.Error, pecasResult.ErrorType);
         }
 
-        foreach (var peca in pecas)
+        var consumoResult = ConsumirReservas(pecasResult.Value, ordemDeServico.Id);
+
+        if (consumoResult.IsFailure)
         {
-            var reservas = peca.Reservas.Where(reserva => reserva.OrdemDeServicoId == ordemDeServico.Id && reserva.Status == StatusReserva.Ativa).ToList();
-
-            foreach (var reserva in reservas)
-            {
-                var consumoResult = peca.Consumir(reserva.Id);
-
-                if (consumoResult.IsFailure)
-                {
-                    return consumoResult;
-                }
-            }
-
-            _pecaRepository.Update(peca);
+            return consumoResult;
         }
 
         var finalizacaoResult = ordemDeServico.Finalizar();
@@ -89,6 +66,50 @@ public sealed class FinalizarOrdemDeServicoHandler : IRequestHandler<FinalizarOr
 
         _ordemDeServicoRepository.Update(ordemDeServico);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
+    }
+
+    private async Task<Result<List<Peca>>> ObterPecasReservadasAsync(IEnumerable<Guid> pecaIds, Guid ordemDeServicoId, CancellationToken cancellationToken)
+    {
+        var pecas = new List<Peca>();
+
+        foreach (var pecaId in pecaIds)
+        {
+            var peca = await _pecaRepository.GetByIdAsync(pecaId, cancellationToken);
+
+            if (peca is null)
+            {
+                return Result.NotFound<List<Peca>>($"Peca {pecaId} nao encontrada");
+            }
+
+            if (!peca.Reservas.Any(reserva => reserva.OrdemDeServicoId == ordemDeServicoId && reserva.Status == StatusReserva.Ativa))
+            {
+                return Result.Conflict<List<Peca>>($"Reserva ativa da peca {peca.Nome} nao encontrada");
+            }
+
+            pecas.Add(peca);
+        }
+
+        return Result.Success(pecas);
+    }
+
+    private Result ConsumirReservas(IEnumerable<Peca> pecas, Guid ordemDeServicoId)
+    {
+        foreach (var peca in pecas)
+        {
+            foreach (var reserva in peca.Reservas.Where(reserva => reserva.OrdemDeServicoId == ordemDeServicoId && reserva.Status == StatusReserva.Ativa).ToList())
+            {
+                var consumoResult = peca.Consumir(reserva.Id);
+
+                if (consumoResult.IsFailure)
+                {
+                    return consumoResult;
+                }
+            }
+
+            _pecaRepository.Update(peca);
+        }
 
         return Result.Success();
     }

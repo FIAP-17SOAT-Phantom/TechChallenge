@@ -5,6 +5,7 @@ using OficinaMecanica.Application.UseCases.Seguranca.Commands;
 using OficinaMecanica.Application.UseCases.Seguranca.Queries;
 using OficinaMecanica.API.Extensions;
 using System.Security.Claims;
+using System.Text.Json.Serialization;
 
 namespace OficinaMecanica.API.Controllers;
 
@@ -122,4 +123,4 @@ public sealed class AutenticacaoController : ControllerBase
 }
 
 public sealed record AlterarSenhaRequest(string SenhaAtual, string NovaSenha);
-public sealed record AlterarStatusUsuarioRequest(bool Ativo);
+public sealed record AlterarStatusUsuarioRequest([property: JsonRequired] bool Ativo);

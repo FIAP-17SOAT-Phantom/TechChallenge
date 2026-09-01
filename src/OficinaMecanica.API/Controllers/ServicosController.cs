@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OficinaMecanica.Application.UseCases.CatalogoServicos.Commands;
 using OficinaMecanica.Application.UseCases.CatalogoServicos.Queries;
+using System.Text.Json.Serialization;
 using OficinaMecanica.API.Extensions;
 
 namespace OficinaMecanica.API.Controllers;
@@ -95,4 +96,4 @@ public sealed class ServicosController : ControllerBase
     }
 }
 
-public sealed record AtualizarServicoRequest(string Nome, string Descricao, decimal PrecoBase, int TempoEstimadoMinutos);
+public sealed record AtualizarServicoRequest(string Nome, string Descricao, [property: JsonRequired] decimal PrecoBase, [property: JsonRequired] int TempoEstimadoMinutos);

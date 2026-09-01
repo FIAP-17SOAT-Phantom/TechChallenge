@@ -13,6 +13,7 @@ namespace OficinaMecanica.Infrastructure.Identity;
 
 public sealed class IdentityService : IIdentityService
 {
+    private const string UsuarioNaoEncontrado = "Usuario nao encontrado";
     private readonly UserManager<UsuarioSistema> _userManager;
     private readonly JwtOptions _jwtOptions;
 
@@ -94,7 +95,7 @@ public sealed class IdentityService : IIdentityService
 
         if (usuario is null)
         {
-            return Result.NotFound("Usuario nao encontrado");
+            return Result.NotFound(UsuarioNaoEncontrado);
         }
 
         var changeResult = await _userManager.ChangePasswordAsync(usuario, senhaAtual, novaSenha);
@@ -134,7 +135,7 @@ public sealed class IdentityService : IIdentityService
 
         if (usuario is null)
         {
-            return Result.NotFound<UsuarioDto>("Usuario nao encontrado");
+            return Result.NotFound<UsuarioDto>(UsuarioNaoEncontrado);
         }
 
         return Result.Success(await MapearUsuarioAsync(usuario));
@@ -146,7 +147,7 @@ public sealed class IdentityService : IIdentityService
 
         if (usuario is null)
         {
-            return Result.NotFound("Usuario nao encontrado");
+            return Result.NotFound(UsuarioNaoEncontrado);
         }
 
         if (!ativo && !usuario.LockoutEnabled)
@@ -170,7 +171,7 @@ public sealed class IdentityService : IIdentityService
 
         if (usuario is null)
         {
-            return Result.NotFound<SenhaTemporariaDto>("Usuario nao encontrado");
+            return Result.NotFound<SenhaTemporariaDto>(UsuarioNaoEncontrado);
         }
 
         var senhaTemporaria = GerarSenhaTemporaria();

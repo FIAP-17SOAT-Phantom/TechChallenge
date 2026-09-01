@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace OficinaMecanica.Domain.Atendimento.ValueObjects;
 
-public class Email : ValueObject
+public partial class Email : ValueObject
 {
     public string Endereco { get; }
 
@@ -16,8 +16,7 @@ public class Email : ValueObject
         if (string.IsNullOrWhiteSpace(limpo))
             return Result.Failure<Email>("Email e obrigatorio");
 
-        var padrao = new Regex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$");
-        if (!padrao.IsMatch(limpo))
+        if (!PadraoEmail().IsMatch(limpo))
             return Result.Failure<Email>("Email invalido");
 
         return Result.Success(new Email(limpo));
@@ -29,4 +28,7 @@ public class Email : ValueObject
     }
 
     public override string ToString() => Endereco;
+
+    [GeneratedRegex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.None, 1000)]
+    private static partial Regex PadraoEmail();
 }

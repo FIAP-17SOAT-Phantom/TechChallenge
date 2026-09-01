@@ -5,6 +5,7 @@ using OficinaMecanica.Application.UseCases.Oficina.Commands;
 using OficinaMecanica.Application.UseCases.Oficina.Queries;
 using OficinaMecanica.API.Extensions;
 using OficinaMecanica.Domain.Oficina.Enums;
+using System.Text.Json.Serialization;
 using System.Security.Claims;
 
 namespace OficinaMecanica.API.Controllers;
@@ -190,5 +191,5 @@ public sealed class OrdensDeServicoController : ControllerBase
     }
 }
 
-public sealed record IniciarDiagnosticoRequest(Guid MecanicoId);
+public sealed record IniciarDiagnosticoRequest([property: JsonRequired] Guid MecanicoId);
 public sealed record RegistrarDiagnosticoRequest(string Diagnostico, IReadOnlyList<ItemDiagnosticoRequest> Itens);

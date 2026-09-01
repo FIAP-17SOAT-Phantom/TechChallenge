@@ -2,7 +2,7 @@ namespace OficinaMecanica.API.Configuration;
 
 public static class DotEnvLoader
 {
-    private static readonly IReadOnlyDictionary<string, string> ConfigurationKeys = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, string> ConfigurationKeys = new(StringComparer.OrdinalIgnoreCase)
     {
         ["JWT_SECRET"] = "Jwt__Secret",
         ["ADMIN_EMAIL"] = "Authentication__SeedUsers__0__Email",
@@ -45,6 +45,8 @@ public static class DotEnvLoader
                 SetIfMissing(configurationKey, value);
             }
         }
+
+        SetConnectionStringIfMissing();
     }
 
     private static void SetIfMissing(string key, string value)
@@ -52,6 +54,25 @@ public static class DotEnvLoader
         if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(key)))
         {
             Environment.SetEnvironmentVariable(key, value);
+        }
+    }
+
+    private static void SetConnectionStringIfMissing()
+    {
+        const string connectionStringKey = "ConnectionStrings__DefaultConnection";
+
+        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(connectionStringKey)))
+        {
+            return;
+        }
+
+        var database = Environment.GetEnvironmentVariable("POSTGRES_DB");
+        var username = Environment.GetEnvironmentVariable("POSTGRES_USER");
+        var password = Environment.GetEnvironmentVariable("POSTGRES_PASSWORD");
+
+        if (!string.IsNullOrWhiteSpace(database) && !string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password))
+        {
+            Environment.SetEnvironmentVariable(connectionStringKey, $"Host=localhost;Database={database};Username={username};Password={password}");
         }
     }
 }

@@ -26,14 +26,14 @@ public class Result
     }
 
     public static Result Success() => new(true, string.Empty, ErrorType.None);
-    public static Result Failure(string error, ErrorType errorType = ErrorType.BusinessRule) => new(false, error, errorType);
-    public static Result NotFound(string error) => Failure(error, ErrorType.NotFound);
-    public static Result Conflict(string error) => Failure(error, ErrorType.Conflict);
-    public static Result Unauthorized(string error) => Failure(error, ErrorType.Unauthorized);
     public static Result<T> Success<T>(T value) => new(value, true, string.Empty, ErrorType.None);
+    public static Result Failure(string error, ErrorType errorType = ErrorType.BusinessRule) => new(false, error, errorType);
     public static Result<T> Failure<T>(string error, ErrorType errorType = ErrorType.BusinessRule) => new(default!, false, error, errorType);
+    public static Result NotFound(string error) => Failure(error, ErrorType.NotFound);
     public static Result<T> NotFound<T>(string error) => Failure<T>(error, ErrorType.NotFound);
+    public static Result Conflict(string error) => Failure(error, ErrorType.Conflict);
     public static Result<T> Conflict<T>(string error) => Failure<T>(error, ErrorType.Conflict);
+    public static Result Unauthorized(string error) => Failure(error, ErrorType.Unauthorized);
     public static Result<T> Unauthorized<T>(string error) => Failure<T>(error, ErrorType.Unauthorized);
 }
 

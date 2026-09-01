@@ -1223,3 +1223,36 @@ Com a organizacao `fiap-17soat-phantom` e a chave `FIAP-17SOAT-Phantom_TechChall
 O token permanece exclusivamente no secret `SONAR_TOKEN` do GitHub. Bugs, vulnerabilidades, code smells, duplicacao, ratings e Quality Gate somente serao documentados depois da primeira execucao real.
 
 O comando OpenCover do workflow foi reproduzido localmente: 96 testes passaram e o assembly Domain apresentou 82,03% de linhas, 68,4% de branches e 82,06% de metodos. O calculo de cobertura do Sonar foi delimitado ao Domain, conforme a meta de dominios criticos; todas as camadas continuam incluidas na analise estatica de qualidade.
+
+A primeira execucao no GitHub concluiu scanner, build, 96 testes e OpenCover, mas o envio foi rejeitado porque `Automatic Analysis` ainda estava habilitado no SonarQube Cloud. Como a analise automatica nao aceita cobertura e nao pode coexistir com o scanner no CI, foi documentada a desativacao em `Administration > Analysis Method` antes de reexecutar o workflow.
+
+---
+
+## Bloco 27 - Correcoes da primeira analise SonarQube Cloud
+
+Em 01/09/2026, a analise por CI foi concluida com Quality Gate aprovado, cobertura de 77,8%, duplicacao de 3,4% e 48 apontamentos abertos. A avaliacao inicial de seguranca foi C e orientou uma rodada de correcoes.
+
+Foram aplicados os seguintes ajustes:
+
+- remocao da connection string com senha fixa de `appsettings.json`;
+- parametrizacao do usuario, banco e senha do PostgreSQL pelo `.env` no Docker Compose;
+- montagem segura da connection string local pelo `DotEnvLoader`, sem versionar o segredo;
+- execucao do container da API com usuario nao root;
+- regex de Email, Placa e documentacao OpenAPI convertidas para `GeneratedRegex` com timeout;
+- propriedades obrigatorias de tipos valor nos contratos HTTP marcadas com `JsonRequired`, evitando under-posting silencioso;
+- inicializacao assincrona da aplicacao com `RunAsync`;
+- registro de autorizacao atualizado para `AddAuthorizationBuilder`;
+- verificacao de usuario ativo e troca obrigatoria de senha extraida para `UserAccessMiddleware`;
+- reducao da complexidade dos handlers de aprovacao de orcamento, cancelamento e finalizacao de OS;
+- reducao da complexidade do seed de Identity e remocao do operador ternario aninhado da listagem de OS;
+- pequenos ajustes de manutencao em `Result`, `IdentityService`, `AppDbContext` e `DotEnvLoader`;
+- exclusao das migrations geradas automaticamente da analise estatica, mantendo o codigo autoral analisado.
+
+Validacao posterior as alteracoes:
+
+- build da solution: sucesso, zero erros e zero avisos;
+- testes unitarios: 96 aprovados;
+- testes de integracao: 7 aprovados com PostgreSQL 16 via Testcontainers;
+- Docker Compose: configuracao valida.
+
+Os numeros definitivos de issues e o Security Rating precisam ser confirmados por um novo push, pois somente o SonarQube Cloud recalcula o dashboard.

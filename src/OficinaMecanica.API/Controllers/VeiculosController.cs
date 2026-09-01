@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OficinaMecanica.Application.UseCases.Atendimento.Commands;
 using OficinaMecanica.Application.UseCases.Atendimento.Queries;
+using System.Text.Json.Serialization;
 using OficinaMecanica.API.Extensions;
 
 namespace OficinaMecanica.API.Controllers;
@@ -82,4 +83,4 @@ public sealed class VeiculosController : ControllerBase
     }
 }
 
-public sealed record AtualizarVeiculoRequest(string Marca, string Modelo, int Ano);
+public sealed record AtualizarVeiculoRequest(string Marca, string Modelo, [property: JsonRequired] int Ano);

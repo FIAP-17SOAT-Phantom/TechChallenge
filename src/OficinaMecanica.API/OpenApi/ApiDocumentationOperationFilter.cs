@@ -4,12 +4,13 @@ using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using System.Text.RegularExpressions;
 
 namespace OficinaMecanica.API.OpenApi;
 
-public sealed class ApiDocumentationOperationFilter : IOperationFilter
+public sealed partial class ApiDocumentationOperationFilter : IOperationFilter
 {
-    private static readonly IReadOnlyDictionary<string, string> Summaries = new Dictionary<string, string>
+    private static readonly Dictionary<string, string> Summaries = new()
     {
         ["Login"] = "Autentica o usuario e retorna um token JWT",
         ["CriarUsuario"] = "Cria um usuario com senha temporaria",
@@ -75,7 +76,10 @@ public sealed class ApiDocumentationOperationFilter : IOperationFilter
         return roles.Count == 0 ? "Requer usuario autenticado." : $"Roles permitidas: {string.Join(", ", roles)}.";
     }
 
-    private static string SepararNome(string value) => System.Text.RegularExpressions.Regex.Replace(value, "([a-z])([A-Z])", "$1 $2");
+    private static string SepararNome(string value) => SeparadorNome().Replace(value, "$1 $2");
+
+    [GeneratedRegex("([a-z])([A-Z])", RegexOptions.None, 1000)]
+    private static partial Regex SeparadorNome();
 
     private static void AplicarExemplo(OpenApiOperation operation, string actionName)
     {

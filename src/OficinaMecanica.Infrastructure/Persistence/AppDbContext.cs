@@ -42,10 +42,10 @@ public class AppDbContext : IdentityDbContext<UsuarioSistema>, IUnitOfWork
         _logger = logger;
     }
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    protected override void OnModelCreating(ModelBuilder builder)
     {
-        base.OnModelCreating(modelBuilder);
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+        base.OnModelCreating(builder);
+        builder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
     }
 
     /// <summary>
@@ -58,7 +58,7 @@ public class AppDbContext : IdentityDbContext<UsuarioSistema>, IUnitOfWork
     {
         // Coletar domain events antes do save
         var aggregatesWithEvents = ChangeTracker.Entries<AggregateRoot>()
-        .Where(e => e.Entity.DomainEvents.Any())
+        .Where(e => e.Entity.DomainEvents.Count > 0)
         .Select(e => e.Entity)
         .ToList();
 

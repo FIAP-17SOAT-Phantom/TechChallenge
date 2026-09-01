@@ -20,13 +20,7 @@ public static class IdentitySeeder
 
         await dbContext.Database.MigrateAsync(cancellationToken);
 
-        foreach (var role in Roles)
-        {
-            if (!await roleManager.RoleExistsAsync(role))
-            {
-                await roleManager.CreateAsync(new IdentityRole(role));
-            }
-        }
+        await SeedRolesAsync(roleManager);
 
         var seedUsers = configuration.GetSection("Authentication:SeedUsers").GetChildren().Select(section => new SeedUserOptions
         {
@@ -36,30 +30,43 @@ public static class IdentitySeeder
             ClienteId = Guid.TryParse(section["ClienteId"], out var clienteId) ? clienteId : null
         }).ToList();
 
-        foreach (var seedUser in seedUsers)
+        foreach (var seedUser in seedUsers.Where(IsValid))
         {
-            if (string.IsNullOrWhiteSpace(seedUser.Email) || string.IsNullOrWhiteSpace(seedUser.Password) || !Roles.Contains(seedUser.Role))
+            await SeedUserAsync(userManager, seedUser);
+        }
+    }
+
+    private static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager)
+    {
+        foreach (var role in Roles)
+        {
+            if (!await roleManager.RoleExistsAsync(role))
             {
-                continue;
+                await roleManager.CreateAsync(new IdentityRole(role));
             }
+        }
+    }
 
-            var usuario = await userManager.FindByEmailAsync(seedUser.Email);
+    private static bool IsValid(SeedUserOptions seedUser) => !string.IsNullOrWhiteSpace(seedUser.Email) && !string.IsNullOrWhiteSpace(seedUser.Password) && Roles.Contains(seedUser.Role);
 
-            if (usuario is null)
+    private static async Task SeedUserAsync(UserManager<UsuarioSistema> userManager, SeedUserOptions seedUser)
+    {
+        var usuario = await userManager.FindByEmailAsync(seedUser.Email);
+
+        if (usuario is null)
+        {
+            usuario = new UsuarioSistema { UserName = seedUser.Email, Email = seedUser.Email, EmailConfirmed = true, ClienteId = seedUser.ClienteId };
+            var creationResult = await userManager.CreateAsync(usuario, seedUser.Password);
+
+            if (!creationResult.Succeeded)
             {
-                usuario = new UsuarioSistema { UserName = seedUser.Email, Email = seedUser.Email, EmailConfirmed = true, ClienteId = seedUser.ClienteId };
-                var creationResult = await userManager.CreateAsync(usuario, seedUser.Password);
-
-                if (!creationResult.Succeeded)
-                {
-                    throw new InvalidOperationException($"Nao foi possivel criar o usuario inicial {seedUser.Email}: {string.Join(", ", creationResult.Errors.Select(error => error.Description))}");
-                }
+                throw new InvalidOperationException($"Nao foi possivel criar o usuario inicial {seedUser.Email}: {string.Join(", ", creationResult.Errors.Select(error => error.Description))}");
             }
+        }
 
-            if (!await userManager.IsInRoleAsync(usuario, seedUser.Role))
-            {
-                await userManager.AddToRoleAsync(usuario, seedUser.Role);
-            }
+        if (!await userManager.IsInRoleAsync(usuario, seedUser.Role))
+        {
+            await userManager.AddToRoleAsync(usuario, seedUser.Role);
         }
     }
 }

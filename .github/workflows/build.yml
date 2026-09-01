@@ -59,7 +59,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         shell: powershell
         run: |
-          & "${{ runner.temp }}\scanner\dotnet-sonarscanner" begin /k:"FIAP-17SOAT-Phantom_TechChallenge" /o:"fiap-17soat-phantom" /d:sonar.token="$env:SONAR_TOKEN" /d:sonar.cs.opencover.reportsPaths="${{ github.workspace }}/coverage/coverage.opencover.xml" /d:sonar.coverage.exclusions="**/OficinaMecanica.API/**,**/OficinaMecanica.Application/**,**/OficinaMecanica.Infrastructure/**" /d:sonar.dotnet.excludeTestProjects=true
+          & "${{ runner.temp }}\scanner\dotnet-sonarscanner" begin /k:"FIAP-17SOAT-Phantom_TechChallenge" /o:"fiap-17soat-phantom" /d:sonar.token="$env:SONAR_TOKEN" /d:sonar.cs.opencover.reportsPaths="${{ github.workspace }}/coverage/coverage.opencover.xml" /d:sonar.coverage.exclusions="**/OficinaMecanica.API/**,**/OficinaMecanica.Application/**,**/OficinaMecanica.Infrastructure/**" /d:sonar.exclusions="**/Persistence/Migrations/**" /d:sonar.dotnet.excludeTestProjects=true
           dotnet build src/OficinaMecanica.slnx --no-restore --no-incremental --configuration Release
           dotnet test src/OficinaMecanica.Tests/OficinaMecanica.Tests.csproj --no-build --configuration Release /p:CollectCoverage=true /p:CoverletOutput="${{ github.workspace }}/coverage/coverage" /p:CoverletOutputFormat=opencover
           & "${{ runner.temp }}\scanner\dotnet-sonarscanner" end /d:sonar.token="$env:SONAR_TOKEN"

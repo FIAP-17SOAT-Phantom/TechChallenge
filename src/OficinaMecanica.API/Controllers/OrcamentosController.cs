@@ -6,6 +6,7 @@ using OficinaMecanica.Application.UseCases.Orcamentacao.Queries;
 using OficinaMecanica.Application.UseCases.Oficina.Queries;
 using OficinaMecanica.API.Extensions;
 using OficinaMecanica.Domain.Orcamentacao.Enums;
+using System.Text.Json.Serialization;
 using System.Security.Claims;
 
 namespace OficinaMecanica.API.Controllers;
@@ -263,6 +264,6 @@ public sealed class OrcamentosController : ControllerBase
     }
 }
 
-public sealed record AdicionarServicoOrcamentoRequest(Guid ServicoId, int Quantidade);
-public sealed record AdicionarPecaOrcamentoRequest(Guid PecaId, int Quantidade);
-public sealed record AlterarQuantidadeItemOrcamentoRequest(int Quantidade);
+public sealed record AdicionarServicoOrcamentoRequest([property: JsonRequired] Guid ServicoId, [property: JsonRequired] int Quantidade);
+public sealed record AdicionarPecaOrcamentoRequest([property: JsonRequired] Guid PecaId, [property: JsonRequired] int Quantidade);
+public sealed record AlterarQuantidadeItemOrcamentoRequest([property: JsonRequired] int Quantidade);

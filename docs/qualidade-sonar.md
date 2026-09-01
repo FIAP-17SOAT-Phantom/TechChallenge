@@ -90,4 +90,34 @@ Depois da primeira analise bem-sucedida:
 6. corrigir ou justificar cada achado relevante;
 7. confirmar o job verde no GitHub Actions.
 
-Enquanto o workflow ainda nao tiver uma execucao verde e um dashboard consultado, as metricas devem ser descritas como pendentes, e nao como aprovadas.
+O workflow ja possui execucao verde e o dashboard foi consultado em 01/09/2026. A primeira medicao apresentou Quality Gate aprovado, cobertura de 77,8%, duplicacao de 3,4%, 48 issues abertas e Security Rating C. Esses valores formam a linha de base anterior a rodada de correcoes; uma nova execucao deve ser usada para registrar os resultados finais.
+
+## Primeira execucao no GitHub
+
+A primeira execucao confirmou que checkout, scanner, autenticacao, build, testes e geracao do OpenCover funcionaram. O envio final foi recusado porque o projeto ainda estava com `Automatic Analysis` habilitado no SonarQube Cloud, ao mesmo tempo em que o GitHub Actions executava a analise por CI.
+
+Para utilizar o workflow e importar cobertura:
+
+```text
+SonarQube Cloud
+    -> projeto FIAP-17SOAT-Phantom_TechChallenge
+    -> Administration
+    -> Analysis Method
+    -> Automatic Analysis
+    -> desmarcar Enabled for this project
+```
+
+Depois, execute novamente o workflow `SonarQube Cloud` no GitHub Actions. Analise automatica e analise por CI sao alternativas mutuamente exclusivas. A analise por CI foi escolhida neste projeto porque permite compilar o .NET, executar testes e importar cobertura OpenCover.
+
+## Tratamento dos achados da primeira analise
+
+Os achados de maior impacto foram tratados no codigo e na infraestrutura: credencial fixa do PostgreSQL removida, container configurado com usuario nao root, regex protegidas contra execucao excessiva, contratos HTTP de tipos valor marcados como obrigatorios e metodos de maior complexidade divididos em operacoes menores.
+
+Tambem foram corrigidos apontamentos de confiabilidade e manutencao, incluindo `RunAsync`, `AddAuthorizationBuilder`, tipos concretos para colecoes privadas, literal repetido e ternario aninhado. As migrations do Entity Framework foram excluidas da analise por serem codigo gerado automaticamente.
+
+Antes de apresentar as metricas como resultado final, deve-se enviar estas alteracoes ao GitHub e confirmar no novo dashboard:
+
+- reducao das 48 issues;
+- melhoria do Security Rating C;
+- permanencia do Quality Gate aprovado;
+- cobertura e duplicacao atualizadas.

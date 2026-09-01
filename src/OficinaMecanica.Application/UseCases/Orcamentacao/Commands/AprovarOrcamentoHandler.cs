@@ -62,35 +62,18 @@ public sealed class AprovarOrcamentoHandler : IRequestHandler<AprovarOrcamentoCo
         }
 
         var quantidadesPorPeca = orcamento.Itens.Where(item => item.Tipo == TipoItem.Peca && item.PecaId.HasValue).GroupBy(item => item.PecaId!.Value).ToDictionary(grupo => grupo.Key, grupo => grupo.Sum(item => item.Quantidade));
-        var pecas = new List<(Peca Peca, int Quantidade)>();
+        var pecasResult = await ObterPecasAsync(quantidadesPorPeca, cancellationToken);
 
-        foreach (var quantidadePorPeca in quantidadesPorPeca)
+        if (pecasResult.IsFailure)
         {
-            var peca = await _pecaRepository.GetByIdAsync(quantidadePorPeca.Key, cancellationToken);
-
-            if (peca is null)
-            {
-                return Result.NotFound($"Peca {quantidadePorPeca.Key} nao encontrada");
-            }
-
-            if (peca.QuantidadeDisponivel < quantidadePorPeca.Value)
-            {
-                return Result.Conflict($"Estoque insuficiente para {peca.Nome}. Disponivel: {peca.QuantidadeDisponivel}, Solicitado: {quantidadePorPeca.Value}");
-            }
-
-            pecas.Add((peca, quantidadePorPeca.Value));
+            return Result.Failure(pecasResult.Error, pecasResult.ErrorType);
         }
 
-        foreach (var item in pecas)
+        var reservaResult = ReservarPecas(pecasResult.Value, ordemDeServico.Id);
+
+        if (reservaResult.IsFailure)
         {
-            var reservaResult = item.Peca.Reservar(ordemDeServico.Id, item.Quantidade);
-
-            if (reservaResult.IsFailure)
-            {
-                return Result.Failure(reservaResult.Error, reservaResult.ErrorType);
-            }
-
-            _pecaRepository.Update(item.Peca);
+            return reservaResult;
         }
 
         var preparacaoResult = ordemDeServico.PrepararItensExecucao(itensExecucao);
@@ -117,6 +100,47 @@ public sealed class AprovarOrcamentoHandler : IRequestHandler<AprovarOrcamentoCo
         _orcamentoRepository.Update(orcamento);
         _ordemDeServicoRepository.Update(ordemDeServico);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
+    }
+
+    private async Task<Result<List<(Peca Peca, int Quantidade)>>> ObterPecasAsync(IReadOnlyDictionary<Guid, int> quantidadesPorPeca, CancellationToken cancellationToken)
+    {
+        var pecas = new List<(Peca Peca, int Quantidade)>();
+
+        foreach (var quantidadePorPeca in quantidadesPorPeca)
+        {
+            var peca = await _pecaRepository.GetByIdAsync(quantidadePorPeca.Key, cancellationToken);
+
+            if (peca is null)
+            {
+                return Result.NotFound<List<(Peca, int)>>($"Peca {quantidadePorPeca.Key} nao encontrada");
+            }
+
+            if (peca.QuantidadeDisponivel < quantidadePorPeca.Value)
+            {
+                return Result.Conflict<List<(Peca, int)>>($"Estoque insuficiente para {peca.Nome}. Disponivel: {peca.QuantidadeDisponivel}, Solicitado: {quantidadePorPeca.Value}");
+            }
+
+            pecas.Add((peca, quantidadePorPeca.Value));
+        }
+
+        return Result.Success(pecas);
+    }
+
+    private Result ReservarPecas(IEnumerable<(Peca Peca, int Quantidade)> pecas, Guid ordemDeServicoId)
+    {
+        foreach (var item in pecas)
+        {
+            var reservaResult = item.Peca.Reservar(ordemDeServicoId, item.Quantidade);
+
+            if (reservaResult.IsFailure)
+            {
+                return Result.Failure(reservaResult.Error, reservaResult.ErrorType);
+            }
+
+            _pecaRepository.Update(item.Peca);
+        }
 
         return Result.Success();
     }

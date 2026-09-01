@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OficinaMecanica.Application.UseCases.Estoque.Commands;
 using OficinaMecanica.Application.UseCases.Estoque.Queries;
+using System.Text.Json.Serialization;
 using OficinaMecanica.API.Extensions;
 
 namespace OficinaMecanica.API.Controllers;
@@ -94,5 +95,5 @@ public sealed class PecasController : ControllerBase
     }
 }
 
-public sealed record AtualizarPecaRequest(string Nome, string Descricao, decimal PrecoUnitario, int QuantidadeMinima);
-public sealed record AdicionarEstoqueRequest(int Quantidade);
+public sealed record AtualizarPecaRequest(string Nome, string Descricao, [property: JsonRequired] decimal PrecoUnitario, [property: JsonRequired] int QuantidadeMinima);
+public sealed record AdicionarEstoqueRequest([property: JsonRequired] int Quantidade);
