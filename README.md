@@ -184,7 +184,7 @@ Executar toda a solucao:
 dotnet test src/OficinaMecanica.slnx
 ```
 
-Resultado validado: **103 testes aprovados e nenhuma falha**. Os dominios criticos possuem cobertura de linhas superior a 80%; os percentuais por classe e as instrucoes para gerar o relatorio estao em [Testes e cobertura](docs/relatorio-testes-cobertura.md).
+Resultado validado: **103 testes aprovados e nenhuma falha**. A camada Domain possui **82,03% de cobertura de linhas** na medicao OpenCover atual; os percentuais por classe e as instrucoes para gerar o relatorio estao em [Testes e cobertura](docs/relatorio-testes-cobertura.md).
 
 O pipeline do GitHub Actions executa build Release, testes unitarios com cobertura, testes de integracao com Testcontainers e scan de dependencias a cada push ou pull request para `main`.
 
@@ -199,7 +199,7 @@ O pipeline do GitHub Actions executa build Release, testes unitarios com cobertu
 - validacao centralizada com FluentValidation;
 - erros padronizados com `ProblemDetails`;
 - scan NuGet direto e transitivo sem vulnerabilidades conhecidas na ultima validacao;
-- cobertura superior a 80% nos dominios criticos.
+- cobertura de linhas de 82,03% na camada Domain.
 
 Os detalhes e achados corrigidos estao no [Relatorio de vulnerabilidades](docs/relatorio-vulnerabilidades.md). A preparacao para analise de bugs, code smells, duplicacao, hotspots e Quality Gate esta descrita em [Qualidade com Sonar](docs/qualidade-sonar.md). Metricas Sonar somente devem ser publicadas depois de uma execucao real vinculada ao repositorio.
 

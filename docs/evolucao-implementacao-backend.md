@@ -1215,3 +1215,11 @@ O README foi ampliado com resumo das rotas principais, roles, exemplo de login, 
 Foi criado `docs/exemplos-api.md` com exemplos de requisicao e resposta para login, Cliente, Veiculo, Servico, Peca, Ordem de Servico, diagnostico, orcamento, aprovacao, execucao e `ProblemDetails`.
 
 Foi criado `docs/qualidade-sonar.md` para definir as metricas e evidencias esperadas. O projeto ainda nao declara resultados Sonar, pois organizacao, chave e token dependem de uma conta externa e uma execucao real. O relatorio de vulnerabilidades foi atualizado para incluir o projeto de integracao no resultado sem pacotes vulneraveis.
+
+### Integracao com SonarQube Cloud
+
+Com a organizacao `fiap-17soat-phantom` e a chave `FIAP-17SOAT-Phantom_TechChallenge`, foi criado `.github/workflows/build.yml`. O workflow usa historico Git completo, Java 21, .NET 8 e SonarScanner for .NET, executa build Release e testes unitarios e envia cobertura OpenCover gerada pelo `coverlet.msbuild`.
+
+O token permanece exclusivamente no secret `SONAR_TOKEN` do GitHub. Bugs, vulnerabilidades, code smells, duplicacao, ratings e Quality Gate somente serao documentados depois da primeira execucao real.
+
+O comando OpenCover do workflow foi reproduzido localmente: 96 testes passaram e o assembly Domain apresentou 82,03% de linhas, 68,4% de branches e 82,06% de metodos. O calculo de cobertura do Sonar foi delimitado ao Domain, conforme a meta de dominios criticos; todas as camadas continuam incluidas na analise estatica de qualidade.

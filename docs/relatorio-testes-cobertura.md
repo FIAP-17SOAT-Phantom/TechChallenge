@@ -11,6 +11,7 @@
 | Framework | xUnit 2.9.2 |
 | Mocking | Moq 4.20.72 |
 | Cobertura (ferramenta) | coverlet + ReportGenerator |
+| Cobertura atual do Domain (linhas) | **82,03%** |
 
 ## Testes por área
 
@@ -41,6 +42,8 @@
 | Email | 92% |
 | Placa | 91% |
 | AlertaEstoque | coberto (8 testes adicionados) |
+
+A execucao OpenCover validada em 01/09/2026 apresentou `82,03%` de linhas, `68,4%` de branches e `82,06%` de metodos no assembly `OficinaMecanica.Domain`. Application e Infrastructure permanecem na analise estatica, mas nao compoem a metrica de cobertura declarada para o requisito de dominios criticos.
 
 Os domínios críticos (regras de negócio: OS, Orçamento, Estoque, Cliente) estão **acima de 80%**, cumprindo o requisito.
 

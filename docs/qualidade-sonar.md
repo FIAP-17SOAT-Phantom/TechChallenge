@@ -4,11 +4,11 @@
 
 O projeto possui build sem avisos, testes unitarios e de integracao, cobertura com coverlet, relatorio pelo ReportGenerator e scan de dependencias NuGet no GitHub Actions.
 
-Ainda nao existe um projeto SonarCloud ou servidor SonarQube conectado ao repositorio. Por isso, este documento nao publica numeros de bugs, code smells, duplicacao ou Quality Gate sem uma medicao real.
+O projeto SonarQube Cloud foi identificado como `FIAP-17SOAT-Phantom_TechChallenge`, na organizacao `fiap-17soat-phantom`, e o workflow `.github/workflows/build.yml` foi preparado. Este documento ainda nao publica numeros de bugs, code smells, duplicacao ou Quality Gate antes da primeira execucao real no GitHub.
 
 ## Metricas que devem ser coletadas
 
-Depois da integracao, registrar no README e no relatorio final:
+Depois da primeira analise, registrar no README e no relatorio final:
 
 | Metrica | Evidencia esperada |
 |---------|--------------------|
@@ -26,22 +26,24 @@ Depois da integracao, registrar no README e no relatorio final:
 
 ## SonarCloud
 
-Para um repositorio hospedado no GitHub, o SonarCloud pode analisar pushes e pull requests. A configuracao exige valores externos que nao devem ser inventados no codigo:
+Para um repositorio hospedado no GitHub, o SonarCloud analisa pushes e pull requests pelo workflow dedicado. A configuracao utiliza:
 
-- organizacao do Sonar;
-- chave do projeto;
-- token armazenado como secret do GitHub;
+- organizacao `fiap-17soat-phantom`;
+- chave `FIAP-17SOAT-Phantom_TechChallenge`;
+- token armazenado como secret `SONAR_TOKEN` do GitHub;
 - permissao do Sonar para acessar o repositorio.
 
-Nomes sugeridos no GitHub:
+Configuracao no GitHub:
 
 ```text
-Variable: SONAR_ORGANIZATION
-Variable: SONAR_PROJECT_KEY
 Secret:   SONAR_TOKEN
 ```
 
 O token nunca deve ser colocado no README, workflow, `.env.example` ou historico Git.
+
+O workflow executa build Release, os 96 testes unitarios e gera `coverage.opencover.xml` com `coverlet.msbuild`. O scanner recebe esse relatorio pela propriedade `sonar.cs.opencover.reportsPaths`, permitindo que o dashboard apresente cobertura C# em vez de apenas analisar o codigo estaticamente.
+
+A cobertura do Quality Gate foi delimitada ao projeto Domain, que apresentou `82,03%` de linhas na validacao OpenCover. API, Application e Infrastructure continuam sendo analisadas pelo Sonar para bugs, vulnerabilidades, hotspots, duplicacao e code smells, mas foram explicitamente excluidas do calculo de cobertura porque a meta academica definida para esta fase se refere aos dominios criticos. Essa delimitacao deve permanecer declarada no README e no relatorio, evitando apresentar o percentual como cobertura global da solucao.
 
 Fluxo oficial do scanner para .NET:
 
@@ -88,4 +90,4 @@ Depois da primeira analise bem-sucedida:
 6. corrigir ou justificar cada achado relevante;
 7. confirmar o job verde no GitHub Actions.
 
-Sem essas evidencias, a integracao deve ser descrita como pendente, e nao como aprovada.
+Enquanto o workflow ainda nao tiver uma execucao verde e um dashboard consultado, as metricas devem ser descritas como pendentes, e nao como aprovadas.
