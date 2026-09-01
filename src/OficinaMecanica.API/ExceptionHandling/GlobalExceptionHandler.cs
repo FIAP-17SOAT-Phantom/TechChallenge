@@ -22,6 +22,7 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
         {
             var errors = validationException.Errors.GroupBy(error => error.PropertyName).ToDictionary(group => group.Key, group => group.Select(error => error.ErrorMessage).ToArray());
             var problemDetails = new ValidationProblemDetails(errors) { Status = StatusCodes.Status400BadRequest, Title = "Erro de validacao" };
+            httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
             return await _problemDetailsService.TryWriteAsync(new ProblemDetailsContext { HttpContext = httpContext, ProblemDetails = problemDetails });
         }
 
@@ -42,6 +43,7 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
 
         var details = status == StatusCodes.Status500InternalServerError ? "Ocorreu um erro inesperado." : exception.Message;
         var response = new ProblemDetails { Status = status, Title = title, Detail = details, Instance = httpContext.Request.Path };
+        httpContext.Response.StatusCode = status;
         return await _problemDetailsService.TryWriteAsync(new ProblemDetailsContext { HttpContext = httpContext, ProblemDetails = response });
     }
 }

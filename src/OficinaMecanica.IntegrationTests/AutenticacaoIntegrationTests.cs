@@ -7,7 +7,8 @@ namespace OficinaMecanica.IntegrationTests;
 /// Testes de integracao da autenticacao contra um PostgreSQL real (TestContainers).
 /// Exercitam o pipeline completo: HTTP -> Controller -> MediatR -> Identity -> banco.
 /// </summary>
-public sealed class AutenticacaoIntegrationTests : IClassFixture<CustomWebApplicationFactory>
+[Collection(IntegrationTestCollection.Name)]
+public sealed class AutenticacaoIntegrationTests
 {
     private readonly CustomWebApplicationFactory _factory;
 

@@ -1187,3 +1187,21 @@ O PostgreSQL fica publicado na porta `5432` para ferramentas locais, enquanto a 
 Foi criado o documento `docs/guia-api-docker-postgresql.md`, reunindo a explicacao do fluxo interno da API, autenticacao, imagens e containers, rede do Compose, configuracao do PostgreSQL, persistencia em volume, migrations, comandos operacionais e acesso por DBeaver, pgAdmin ou `psql`.
 
 Foi criado tambem o roadmap `docs/roadmap-login-autenticacao-jwt.md`, que documenta o caminho completo do login pelo Controller, MediatR, validacao, Handler, Identity, PostgreSQL e geracao do JWT. O guia inclui primeiro acesso, senha temporaria, roles, middleware de estado do usuario, configuracoes e ordem recomendada de breakpoints.
+
+---
+
+## Bloco 25 - Auditoria de Validacao da Fase 1
+
+Em 01/09/2026, o build Release da solucao foi concluido sem erros ou avisos, os 96 testes unitarios passaram, o Docker Compose construiu e iniciou API e PostgreSQL, o banco ficou saudavel, e Swagger e login responderam HTTP 200. O scan atualizado do NuGet nao encontrou pacotes vulneraveis em nenhum dos seis projetos.
+
+A auditoria identificou uma pendencia na infraestrutura de testes de integracao. Os sete testes compilam e o Testcontainers inicia com Docker, mas `Program.cs` le `Jwt:Secret` antes de a configuracao em memoria de `CustomWebApplicationFactory` estar disponivel. Todos foram interrompidos pela mesma `InvalidOperationException`, antes da execucao dos cenarios.
+
+O diagnostico completo, as evidencias e a ordem de finalizacao foram registrados em `docs/status-validacao-fase1.md`.
+
+### Correcao dos testes de integracao
+
+O `CustomWebApplicationFactory` passou a iniciar o PostgreSQL antes da API e disponibilizar connection string, JWT e usuario de seed antes da leitura inicial do `Program.cs`. As classes foram agrupadas em uma collection fixture sem paralelismo, compartilhando um unico container efemero e evitando concorrencia sobre variaveis de ambiente.
+
+Com o startup liberado, os cenarios de entrada invalida revelaram que `GlobalExceptionHandler` nao definia o status HTTP antes de escrever o `ProblemDetails`. O handler foi corrigido para atribuir 400 a `ValidationException` e o status mapeado para as demais excecoes.
+
+Resultado final: 7 testes de integracao aprovados contra PostgreSQL 16 real, incluindo autenticacao, autorizacao, validacao e persistencia de servico.

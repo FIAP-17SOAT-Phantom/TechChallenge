@@ -6,7 +6,8 @@ namespace OficinaMecanica.IntegrationTests;
 /// Verifica que rotas protegidas exigem autenticacao JWT.
 /// A API usa FallbackPolicy exigindo usuario autenticado por padrao.
 /// </summary>
-public sealed class AutorizacaoIntegrationTests : IClassFixture<CustomWebApplicationFactory>
+[Collection(IntegrationTestCollection.Name)]
+public sealed class AutorizacaoIntegrationTests
 {
     private readonly CustomWebApplicationFactory _factory;
 

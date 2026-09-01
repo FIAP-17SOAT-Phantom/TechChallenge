@@ -9,7 +9,8 @@ namespace OficinaMecanica.IntegrationTests;
 /// login -> criar servico (persiste no banco) -> consultar servico criado.
 /// Valida persistencia via EF Core + mapeamento + serializacao HTTP.
 /// </summary>
-public sealed class ServicosFluxoIntegrationTests : IClassFixture<CustomWebApplicationFactory>
+[Collection(IntegrationTestCollection.Name)]
+public sealed class ServicosFluxoIntegrationTests
 {
     private readonly CustomWebApplicationFactory _factory;
 

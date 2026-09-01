@@ -122,6 +122,7 @@ Os testes de integracao com PostgreSQL real permanecem separados da finalizacao 
 | [Decisoes tecnicas](docs/decisoes-tecnicas-stack-completa.md) | Stack e justificativas |
 | [Guia da API, Docker e PostgreSQL](docs/guia-api-docker-postgresql.md) | Funcionamento da API, containers, banco, volume, migrations e acesso aos dados |
 | [Roadmap do login e JWT](docs/roadmap-login-autenticacao-jwt.md) | Caminho completo do Controller ao PostgreSQL, emissao do token e autorizacao |
+| [Status de validacao da Fase 1](docs/status-validacao-fase1.md) | Auditoria de build, testes, Docker, seguranca e pendencias da entrega |
 
 ## Grupo
 
