@@ -1205,3 +1205,13 @@ O `CustomWebApplicationFactory` passou a iniciar o PostgreSQL antes da API e dis
 Com o startup liberado, os cenarios de entrada invalida revelaram que `GlobalExceptionHandler` nao definia o status HTTP antes de escrever o `ProblemDetails`. O handler foi corrigido para atribuir 400 a `ValidationException` e o status mapeado para as demais excecoes.
 
 Resultado final: 7 testes de integracao aprovados contra PostgreSQL 16 real, incluindo autenticacao, autorizacao, validacao e persistencia de servico.
+
+---
+
+## Bloco 26 - Evidencias de API, Testes e Qualidade
+
+O README foi ampliado com resumo das rotas principais, roles, exemplo de login, referencia das 42 rotas, organizacao das suites, comandos de execucao, total de 103 testes, cobertura, controles de seguranca, pipeline e limite atual do deploy local.
+
+Foi criado `docs/exemplos-api.md` com exemplos de requisicao e resposta para login, Cliente, Veiculo, Servico, Peca, Ordem de Servico, diagnostico, orcamento, aprovacao, execucao e `ProblemDetails`.
+
+Foi criado `docs/qualidade-sonar.md` para definir as metricas e evidencias esperadas. O projeto ainda nao declara resultados Sonar, pois organizacao, chave e token dependem de uma conta externa e uma execucao real. O relatorio de vulnerabilidades foi atualizado para incluir o projeto de integracao no resultado sem pacotes vulneraveis.

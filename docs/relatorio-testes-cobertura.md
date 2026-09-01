@@ -4,8 +4,10 @@
 
 | Métrica | Valor |
 |---------|-------|
-| Total de testes | **96** |
-| Testes passando | **96 (100%)** |
+| Testes unitarios | **96** |
+| Testes de integracao | **7** |
+| Total de testes | **103** |
+| Testes passando | **103 (100%)** |
 | Framework | xUnit 2.9.2 |
 | Mocking | Moq 4.20.72 |
 | Cobertura (ferramenta) | coverlet + ReportGenerator |
@@ -51,7 +53,7 @@ System.IO.FileLoadException: Could not load file or assembly 'OficinaMecanica.Do
 Uma política de Controle de Aplicativo bloqueou este arquivo. (0x800711C7)
 ```
 
-**Importante:** isso NÃO é um problema do código nem dos testes. Sem instrumentação, os 96 testes passam normalmente. A instrumentação de cobertura reescreve o DLL, e o Smart App Control bloqueia o arquivo modificado por não ter assinatura confiável.
+**Importante:** isso NÃO é um problema do código nem dos testes. Sem instrumentação, os 96 testes unitários passam normalmente. A instrumentação de cobertura reescreve o DLL, e o Smart App Control bloqueia o arquivo modificado por não ter assinatura confiável.
 
 ### Como medir a cobertura de forma confiável
 
@@ -99,4 +101,4 @@ dotnet test src/OficinaMecanica.Tests/OficinaMecanica.Tests.csproj --collect:"XP
 
 ## Nota sobre execução local (importante)
 
-Nesta máquina de desenvolvimento (Windows 11 com Smart App Control ativo), a execução via `dotnet test` pode falhar com `FileLoadException (0x800711C7)` após rebuilds, porque o Smart App Control bloqueia assemblies recém-compilados até que o serviço de reputação da Microsoft os libere. **Isso não indica falha nos testes** — os 96 testes unitários passam de forma consistente em ambiente sem WDAC (CI/Ubuntu). O pipeline de CI é a fonte de verdade para execução de testes e medição de cobertura.
+Nesta máquina de desenvolvimento (Windows 11 com Smart App Control ativo), a execução instrumentada via `dotnet test` pode falhar com `FileLoadException (0x800711C7)` após rebuilds, porque o Smart App Control bloqueia assemblies modificados pelo coverlet. **Isso não indica falha nos testes** — os 96 testes unitários e os 7 testes de integração foram validados sem instrumentação. O pipeline de CI é a fonte de verdade para medição reproduzível de cobertura.

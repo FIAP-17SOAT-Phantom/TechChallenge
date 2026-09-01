@@ -55,6 +55,7 @@ OficinaMecanica.API            -> nenhum pacote vulnerável
 OficinaMecanica.Application    -> nenhum pacote vulnerável
 OficinaMecanica.Domain         -> nenhum pacote vulnerável
 OficinaMecanica.Infrastructure -> nenhum pacote vulnerável
+OficinaMecanica.IntegrationTests -> nenhum pacote vulnerável
 OficinaMecanica.Tests          -> nenhum pacote vulnerável
 ```
 
