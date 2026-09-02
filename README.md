@@ -229,15 +229,11 @@ Em um deploy, `JWT_SECRET`, credenciais administrativas e connection string deve
 
 | Documento | Descricao |
 |-----------|-----------|
-| [Evolucao do backend](docs/evolucao-implementacao-backend.md) | Registro incremental de toda a implementacao |
-| [Plano de execucao](docs/plano-execucao-tech-challenge-fase1.md) | Roadmap da fase |
 | [Modelagem DDD e Event Storming](docs/plano-bloco1-modelagem-ddd-event-storming.md) | Bounded Contexts, eventos, comandos e aggregates |
 | [Decisao arquitetural](docs/decisao-arquitetural-clean-architecture.md) | Clean Architecture |
 | [Decisao de banco](docs/decisao-banco-de-dados-postgresql.md) | PostgreSQL |
 | [Decisoes tecnicas](docs/decisoes-tecnicas-stack-completa.md) | Stack e justificativas |
-| [Guia da API, Docker e PostgreSQL](docs/guia-api-docker-postgresql.md) | Funcionamento da API, containers, banco, volume, migrations e acesso aos dados |
 | [Roadmap do login e JWT](docs/roadmap-login-autenticacao-jwt.md) | Caminho completo do Controller ao PostgreSQL, emissao do token e autorizacao |
-| [Status de validacao da Fase 1](docs/status-validacao-fase1.md) | Auditoria de build, testes, Docker, seguranca e pendencias da entrega |
 | [Exemplos da API](docs/exemplos-api.md) | Requisicoes e respostas dos principais fluxos |
 | [Testes e cobertura](docs/relatorio-testes-cobertura.md) | Organizacao, execucao e cobertura dos dominios criticos |
 | [Relatorio de vulnerabilidades](docs/relatorio-vulnerabilidades.md) | Scan de dependencias, achados e correcoes |
