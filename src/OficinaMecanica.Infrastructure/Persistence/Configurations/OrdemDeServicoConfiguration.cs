@@ -49,6 +49,28 @@ public class OrdemDeServicoConfiguration : IEntityTypeConfiguration<OrdemDeServi
             item.HasOne<Peca>().WithMany().HasForeignKey(i => i.PecaId).OnDelete(DeleteBehavior.Restrict);
         });
 
+        builder.OwnsMany(os => os.ServicosSolicitados, item =>
+        {
+            item.ToTable("ServicosSolicitadosOrdemDeServico", table => table.HasCheckConstraint("CK_ServicosSolicitadosOrdemDeServico_Quantidade", "\"Quantidade\" > 0"));
+            item.WithOwner().HasForeignKey("OrdemDeServicoId");
+            item.Property(i => i.ServicoId).IsRequired();
+            item.Property(i => i.Quantidade).IsRequired();
+            item.Property(i => i.Observacao).HasMaxLength(500);
+            item.HasOne<Servico>().WithMany().HasForeignKey(i => i.ServicoId).OnDelete(DeleteBehavior.Restrict);
+            item.HasIndex("OrdemDeServicoId", nameof(ServicoSolicitadoOS.ServicoId)).IsUnique();
+        });
+
+        builder.OwnsMany(os => os.PecasSolicitadas, item =>
+        {
+            item.ToTable("PecasSolicitadasOrdemDeServico", table => table.HasCheckConstraint("CK_PecasSolicitadasOrdemDeServico_Quantidade", "\"Quantidade\" > 0"));
+            item.WithOwner().HasForeignKey("OrdemDeServicoId");
+            item.Property(i => i.PecaId).IsRequired();
+            item.Property(i => i.Quantidade).IsRequired();
+            item.Property(i => i.Observacao).HasMaxLength(500);
+            item.HasOne<Peca>().WithMany().HasForeignKey(i => i.PecaId).OnDelete(DeleteBehavior.Restrict);
+            item.HasIndex("OrdemDeServicoId", nameof(PecaSolicitadaOS.PecaId)).IsUnique();
+        });
+
         builder.HasIndex(os => os.ClienteId);
         builder.HasIndex(os => os.VeiculoId);
         builder.HasIndex(os => os.Status);

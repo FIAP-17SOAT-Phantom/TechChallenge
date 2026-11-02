@@ -20,12 +20,24 @@ public class OrdemDeServico : AggregateRoot
     private readonly List<ItemOS> _itens = new();
     public IReadOnlyCollection<ItemOS> Itens => _itens.AsReadOnly();
 
+    private readonly List<ServicoSolicitadoOS> _servicosSolicitados = new();
+    public IReadOnlyCollection<ServicoSolicitadoOS> ServicosSolicitados => _servicosSolicitados.AsReadOnly();
+
+    private readonly List<PecaSolicitadaOS> _pecasSolicitadas = new();
+    public IReadOnlyCollection<PecaSolicitadaOS> PecasSolicitadas => _pecasSolicitadas.AsReadOnly();
+
     private OrdemDeServico() { } // EF Core
 
     public OrdemDeServico(string numero, Guid clienteId, Guid veiculoId)
     {
         if (string.IsNullOrWhiteSpace(numero))
             throw new ArgumentException("Numero da OS e obrigatorio");
+
+        if (clienteId == Guid.Empty)
+            throw new ArgumentException("Cliente e obrigatorio");
+
+        if (veiculoId == Guid.Empty)
+            throw new ArgumentException("Veiculo e obrigatorio");
 
         Numero = numero;
         ClienteId = clienteId;
@@ -34,6 +46,24 @@ public class OrdemDeServico : AggregateRoot
         DataAbertura = DateTime.UtcNow;
 
         RaiseDomainEvent(new OrdemDeServicoCriadaEvent(Id, numero));
+    }
+
+    public OrdemDeServico(string numero, Guid clienteId, Guid veiculoId, IReadOnlyCollection<ServicoSolicitadoOS> servicosSolicitados, IReadOnlyCollection<PecaSolicitadaOS> pecasSolicitadas) : this(numero, clienteId, veiculoId)
+    {
+        if (servicosSolicitados is null || servicosSolicitados.Count == 0)
+            throw new ArgumentException("A OS deve possuir pelo menos um servico solicitado");
+
+        if (pecasSolicitadas is null)
+            throw new ArgumentNullException(nameof(pecasSolicitadas));
+
+        if (servicosSolicitados.Select(item => item.ServicoId).Distinct().Count() != servicosSolicitados.Count)
+            throw new ArgumentException("Nao e permitido repetir servicos solicitados");
+
+        if (pecasSolicitadas.Select(item => item.PecaId).Distinct().Count() != pecasSolicitadas.Count)
+            throw new ArgumentException("Nao e permitido repetir pecas solicitadas");
+
+        _servicosSolicitados.AddRange(servicosSolicitados);
+        _pecasSolicitadas.AddRange(pecasSolicitadas);
     }
 
     public Result IniciarDiagnostico(Guid mecanicoId)

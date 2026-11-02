@@ -4,10 +4,11 @@
 
 | Métrica | Valor |
 |---------|-------|
-| Testes unitarios | **96** |
-| Testes de integracao | **7** |
-| Total de testes | **103** |
-| Testes passando | **103 (100%)** |
+| Testes unitarios | **121** |
+| Testes de integracao | **9** |
+| Total de testes definidos | **130** |
+| Ultima execucao unitaria | **121 aprovados (100%)** |
+| Integracao | **7 da linha de base aprovados; 2 novos aguardando Docker ativo** |
 | Framework | xUnit 2.9.2 |
 | Mocking | Moq 4.20.72 |
 | Cobertura (ferramenta) | coverlet + ReportGenerator |
@@ -18,11 +19,11 @@
 | Área | Arquivos de teste | Foco |
 |------|-------------------|------|
 | Atendimento | CpfTests, EmailTests, PlacaTests, ClienteTests, VeiculoTests | Value Objects com validação + aggregates |
-| Oficina | OrdemDeServicoTests | Máquina de estados da OS |
+| Oficina | OrdemDeServicoTests, SolicitacoesOrdemDeServicoTests | Máquina de estados e solicitações iniciais da OS |
 | Orcamentacao | OrcamentoTests, OrcamentoItensTests | Transições + gestão de itens |
 | Estoque | PecaTests, AlertaEstoqueTests | Reserva/consumo + alertas |
 | CatalogoServicos | ServicoTests | CRUD de serviços |
-| Application | AprovarOrcamentoHandlerTests | Use case + política de reserva |
+| Application | AprovarOrcamentoHandlerTests, AbrirOrdemDeServicoHandlerTests, AbrirOrdemDeServicoValidatorTests | Reserva e abertura completa transacional |
 
 ## Cobertura dos domínios críticos
 
@@ -56,7 +57,7 @@ System.IO.FileLoadException: Could not load file or assembly 'OficinaMecanica.Do
 Uma política de Controle de Aplicativo bloqueou este arquivo. (0x800711C7)
 ```
 
-**Importante:** isso NÃO é um problema do código nem dos testes. Sem instrumentação, os 96 testes unitários passam normalmente. A instrumentação de cobertura reescreve o DLL, e o Smart App Control bloqueia o arquivo modificado por não ter assinatura confiável.
+**Importante:** isso NÃO é um problema do código nem dos testes. Sem instrumentação, os 121 testes unitários passam normalmente. A instrumentação de cobertura reescreve o DLL, e o Smart App Control bloqueia o arquivo modificado por não ter assinatura confiável.
 
 ### Como medir a cobertura de forma confiável
 
@@ -86,6 +87,8 @@ Usa **TestContainers** para subir um PostgreSQL 16 real em Docker e **WebApplica
 | Rota protegida com token inválido retorna 401 | AutorizacaoIntegrationTests |
 | Criar + consultar serviço persiste no banco | ServicosFluxoIntegrationTests |
 | Criar serviço com dados inválidos retorna 400 | ServicosFluxoIntegrationTests |
+| Abrir OS completa retorna 201 e persiste solicitações | AberturaOrdemDeServicoIntegrationTests |
+| Placa pertencente a outro cliente retorna 409 | AberturaOrdemDeServicoIntegrationTests |
 
 **Requisito:** Docker em execução. Os testes rodam automaticamente no CI (runner Ubuntu já tem Docker). Localmente, requerem Docker Desktop instalado.
 
@@ -104,4 +107,4 @@ dotnet test src/OficinaMecanica.Tests/OficinaMecanica.Tests.csproj --collect:"XP
 
 ## Nota sobre execução local (importante)
 
-Nesta máquina de desenvolvimento (Windows 11 com Smart App Control ativo), a execução instrumentada via `dotnet test` pode falhar com `FileLoadException (0x800711C7)` após rebuilds, porque o Smart App Control bloqueia assemblies modificados pelo coverlet. **Isso não indica falha nos testes** — os 96 testes unitários e os 7 testes de integração foram validados sem instrumentação. O pipeline de CI é a fonte de verdade para medição reproduzível de cobertura.
+Nesta máquina de desenvolvimento (Windows 11 com Smart App Control ativo), a execução instrumentada via `dotnet test` pode falhar com `FileLoadException (0x800711C7)` após rebuilds, porque o Smart App Control bloqueia assemblies modificados pelo coverlet. **Isso não indica falha nos testes**. Nesta etapa, os 121 testes unitários passaram sem instrumentação. Os 7 testes de integração da linha de base já haviam sido validados; os 2 novos cenários dependem do Docker Engine ativo. O pipeline de CI é a fonte de verdade para medição reproduzível de cobertura.

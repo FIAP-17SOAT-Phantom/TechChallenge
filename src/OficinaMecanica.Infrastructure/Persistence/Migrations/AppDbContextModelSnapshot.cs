@@ -22,6 +22,8 @@ namespace OficinaMecanica.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.HasSequence("ordem_servico_numero_seq");
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
                     b.Property<string>("Id")
@@ -741,7 +743,97 @@ namespace OficinaMecanica.Infrastructure.Persistence.Migrations
                                 .IsRequired();
                         });
 
+                    b.OwnsMany("OficinaMecanica.Domain.Oficina.Entities.PecaSolicitadaOS", "PecasSolicitadas", b1 =>
+                        {
+                            b1.Property<Guid>("OrdemDeServicoId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer");
+
+                            NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b1.Property<int>("Id"));
+
+                            b1.Property<string>("Observacao")
+                                .HasMaxLength(500)
+                                .HasColumnType("character varying(500)");
+
+                            b1.Property<Guid>("PecaId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("Quantidade")
+                                .HasColumnType("integer");
+
+                            b1.HasKey("OrdemDeServicoId", "Id");
+
+                            b1.HasIndex("PecaId");
+
+                            b1.HasIndex("OrdemDeServicoId", "PecaId")
+                                .IsUnique();
+
+                            b1.ToTable("PecasSolicitadasOrdemDeServico", null, t =>
+                                {
+                                    t.HasCheckConstraint("CK_PecasSolicitadasOrdemDeServico_Quantidade", "\"Quantidade\" > 0");
+                                });
+
+                            b1.WithOwner()
+                                .HasForeignKey("OrdemDeServicoId");
+
+                            b1.HasOne("OficinaMecanica.Domain.Estoque.Entities.Peca", null)
+                                .WithMany()
+                                .HasForeignKey("PecaId")
+                                .OnDelete(DeleteBehavior.Restrict)
+                                .IsRequired();
+                        });
+
+                    b.OwnsMany("OficinaMecanica.Domain.Oficina.Entities.ServicoSolicitadoOS", "ServicosSolicitados", b1 =>
+                        {
+                            b1.Property<Guid>("OrdemDeServicoId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer");
+
+                            NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b1.Property<int>("Id"));
+
+                            b1.Property<string>("Observacao")
+                                .HasMaxLength(500)
+                                .HasColumnType("character varying(500)");
+
+                            b1.Property<int>("Quantidade")
+                                .HasColumnType("integer");
+
+                            b1.Property<Guid>("ServicoId")
+                                .HasColumnType("uuid");
+
+                            b1.HasKey("OrdemDeServicoId", "Id");
+
+                            b1.HasIndex("ServicoId");
+
+                            b1.HasIndex("OrdemDeServicoId", "ServicoId")
+                                .IsUnique();
+
+                            b1.ToTable("ServicosSolicitadosOrdemDeServico", null, t =>
+                                {
+                                    t.HasCheckConstraint("CK_ServicosSolicitadosOrdemDeServico_Quantidade", "\"Quantidade\" > 0");
+                                });
+
+                            b1.WithOwner()
+                                .HasForeignKey("OrdemDeServicoId");
+
+                            b1.HasOne("OficinaMecanica.Domain.CatalogoServicos.Entities.Servico", null)
+                                .WithMany()
+                                .HasForeignKey("ServicoId")
+                                .OnDelete(DeleteBehavior.Restrict)
+                                .IsRequired();
+                        });
+
                     b.Navigation("Itens");
+
+                    b.Navigation("PecasSolicitadas");
+
+                    b.Navigation("ServicosSolicitados");
                 });
 
             modelBuilder.Entity("OficinaMecanica.Domain.Orcamentacao.Entities.Orcamento", b =>

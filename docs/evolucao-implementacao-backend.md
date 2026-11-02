@@ -1285,3 +1285,41 @@ Portanto, as duas issues exibidas no Overview pertencem ao codigo geral ou ao hi
 ### Evidencia no README
 
 O `README.md` passou a apresentar uma tabela direta com Quality Gate, issues, cobertura, duplicacao, security issues, hotspots e Security Rating, separando codigo novo de codigo geral. Tambem foram registrados a data, o commit analisado, a evolucao em relacao a primeira medicao e o link para o dashboard do SonarQube Cloud. A orientacao de execucao local foi atualizada para refletir que as credenciais do PostgreSQL agora ficam em variaveis externas, e nao em `appsettings.json`.
+
+---
+
+## Bloco 28 - Fase 2: abertura completa da Ordem de Servico
+
+Foi criado `POST /api/ordens-de-servico/abertura` para receber, em uma unica requisicao:
+
+- nome, CPF, telefone e e-mail do cliente;
+- placa, marca, modelo e ano do veiculo;
+- servicos solicitados com quantidade e observacao;
+- pecas solicitadas com quantidade e observacao.
+
+O endpoint anterior `POST /api/ordens-de-servico`, baseado em `ClienteId` e `VeiculoId`, foi preservado para nao quebrar os fluxos da Fase 1. A nova resposta retorna `id` e `numero` e utiliza `CreatedAtAction` para apontar para a consulta da OS.
+
+O novo `AbrirOrdemDeServicoHandler` executa todo o fluxo em transacao serializavel e realiza apenas um `SaveChangesAsync`. Ele reutiliza cliente pelo CPF e veiculo pela placa, cadastra os ausentes, impede o uso de placa pertencente a outro cliente, exige ao menos um servico ativo e valida todas as pecas. Servicos e pecas sao carregados em duas consultas em lote, sem um round-trip por item. Se nome, contato ou dados do veiculo divergirem de um cadastro existente, a abertura retorna `409` e orienta usar o endpoint de atualizacao; os dados recebidos nunca sao ignorados ou sobrescritos silenciosamente. Nenhum estoque e reservado durante a abertura.
+
+Foram adicionadas as colecoes de dominio `ServicosSolicitados` e `PecasSolicitadas`. Elas permanecem separadas de `Itens`, pois os itens confirmados sao substituidos durante o diagnostico e a preparacao da execucao. Essa separacao preserva o pedido original do cliente durante todo o ciclo da OS.
+
+A migration `AddAberturaCompletaOrdemDeServico` adiciona:
+
+- `ServicosSolicitadosOrdemDeServico`;
+- `PecasSolicitadasOrdemDeServico`;
+- FKs restritivas para catalogo e estoque;
+- constraints para quantidades positivas;
+- unicidade de cada servico ou peca dentro da mesma OS;
+- sequence PostgreSQL `ordem_servico_numero_seq`.
+
+A sequence substitui a antiga geracao `COUNT + 1` e evita colisao entre requisicoes concorrentes ou replicas da API. Ela e inicializada a partir do maior numero ja existente, permitindo aplicar a migration sobre o banco da Fase 1.
+
+A consulta e a listagem de OS passaram a retornar tambem os servicos e pecas solicitados. O Swagger recebeu resumo, respostas e payload de exemplo do novo endpoint, e `docs/exemplos-api.md` foi atualizado com o fluxo completo.
+
+Validacoes executadas nesta etapa:
+
+- build da solution: sucesso, zero erros e zero avisos;
+- migration gerada e script PostgreSQL conferido;
+- 121 testes unitarios aprovados, incluindo 25 novos cenarios do Topico 1;
+- 2 novos cenarios de integracao compilados para abertura e conflito de placa;
+- execucao dos testes de integracao pendente apenas porque o Docker Engine estava desligado no ambiente local.

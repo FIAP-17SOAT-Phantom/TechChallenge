@@ -118,7 +118,8 @@ Todas as rotas, exceto o login, exigem JWT por padrao. As roles indicadas repres
 | `POST` | `/api/servicos` | Admin | Cadastrar servico |
 | `POST` | `/api/pecas` | Admin | Cadastrar peca e estoque inicial |
 | `PATCH` | `/api/pecas/{pecaId}/estoque` | Admin | Registrar entrada de estoque |
-| `POST` | `/api/ordens-de-servico` | Admin, Atendente | Abrir Ordem de Servico |
+| `POST` | `/api/ordens-de-servico/abertura` | Admin, Atendente | Abrir OS com cliente, veiculo, servicos e pecas |
+| `POST` | `/api/ordens-de-servico` | Admin, Atendente | Abrir OS com cliente e veiculo ja cadastrados (compatibilidade) |
 | `PATCH` | `/api/ordens-de-servico/{id}/registrar-diagnostico` | Admin, Mecanico | Registrar diagnostico e itens |
 | `POST` | `/api/orcamentos` | Admin, Atendente | Gerar orcamento da OS |
 | `PATCH` | `/api/orcamentos/{id}/enviar` | Admin, Atendente | Enviar orcamento ao cliente |
@@ -129,7 +130,7 @@ Todas as rotas, exceto o login, exigem JWT por padrao. As roles indicadas repres
 | `GET` | `/api/ordens-de-servico/minhas` | Cliente | Listar as proprias Ordens de Servico |
 | `GET` | `/api/ordens-de-servico/indicadores` | Admin | Consultar indicadores administrativos |
 
-A referencia com exemplos completos de login, cadastros, Ordem de Servico, orcamento e respostas de erro esta em [Exemplos da API](docs/exemplos-api.md). O Swagger permanece como fonte completa e executavel das 42 rotas.
+A referencia com exemplos completos de login, cadastros, Ordem de Servico, orcamento e respostas de erro esta em [Exemplos da API](docs/exemplos-api.md). O Swagger permanece como fonte completa e executavel das 43 rotas.
 
 ### Exemplo rapido de login
 
@@ -163,8 +164,8 @@ A solucao possui duas suites:
 
 | Suite | Projeto | Quantidade | Escopo |
 |-------|---------|-----------:|--------|
-| Unitarios | `OficinaMecanica.Tests` | 96 | Domain, Value Objects, aggregates e Application |
-| Integracao | `OficinaMecanica.IntegrationTests` | 7 | HTTP, JWT, MediatR, Identity, EF Core e PostgreSQL 16 real |
+| Unitarios | `OficinaMecanica.Tests` | 121 | Domain, Value Objects, aggregates, validators e Application |
+| Integracao | `OficinaMecanica.IntegrationTests` | 9 | HTTP, JWT, MediatR, Identity, EF Core e PostgreSQL 16 real |
 
 Executar os testes unitarios:
 
@@ -184,7 +185,7 @@ Executar toda a solucao:
 dotnet test src/OficinaMecanica.slnx
 ```
 
-Resultado validado: **103 testes aprovados e nenhuma falha**. A camada Domain possui **82,03% de cobertura de linhas** na medicao OpenCover atual; os percentuais por classe e as instrucoes para gerar o relatorio estao em [Testes e cobertura](docs/relatorio-testes-cobertura.md).
+Resultado desta etapa: **121 testes unitarios aprovados e nenhuma falha**. Os 7 testes de integracao da linha de base continuam validados; os 2 novos cenarios de abertura completa estao compilando e aguardam execucao local com o Docker Engine ativo. A camada Domain possui **82,03% de cobertura de linhas** na ultima medicao OpenCover; os percentuais por classe e as instrucoes para gerar o relatorio estao em [Testes e cobertura](docs/relatorio-testes-cobertura.md).
 
 O pipeline do GitHub Actions executa build Release, testes unitarios com cobertura, testes de integracao com Testcontainers e scan de dependencias a cada push ou pull request para `main`.
 

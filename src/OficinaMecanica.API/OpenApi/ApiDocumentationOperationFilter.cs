@@ -18,6 +18,7 @@ public sealed partial class ApiDocumentationOperationFilter : IOperationFilter
         ["RedefinirSenhaUsuario"] = "Gera uma nova senha temporaria",
         ["ListarMinhasOrdensDeServico"] = "Lista as ordens do cliente autenticado",
         ["ConsultarMinhaOrdemDeServico"] = "Consulta uma ordem do cliente autenticado",
+        ["Abrir"] = "Abre uma OS com os dados do cliente, veiculo, servicos e pecas",
         ["ListarMeusOrcamentos"] = "Lista os orcamentos do cliente autenticado",
         ["ConsultarMeuOrcamento"] = "Consulta um orcamento do cliente autenticado",
         ["RegistrarDiagnostico"] = "Registra diagnostico, servicos e pecas sugeridos",
@@ -94,6 +95,13 @@ public sealed partial class ApiDocumentationOperationFilter : IOperationFilter
             "CriarUsuario" => new OpenApiObject { ["email"] = new OpenApiString("cliente@email.com"), ["role"] = new OpenApiString("Cliente"), ["clienteId"] = new OpenApiString("00000000-0000-0000-0000-000000000000") },
             "AlterarSenha" => new OpenApiObject { ["senhaAtual"] = new OpenApiString("senha-temporaria"), ["novaSenha"] = new OpenApiString("NovaSenha@123") },
             "Criar" when operation.Tags.Any(tag => tag.Name == "Clientes") => new OpenApiObject { ["nome"] = new OpenApiString("Cliente Exemplo"), ["cpf"] = new OpenApiString("52998224725"), ["telefone"] = new OpenApiString("11999999999"), ["email"] = new OpenApiString("cliente@email.com") },
+            "Abrir" => new OpenApiObject
+            {
+                ["cliente"] = new OpenApiObject { ["nome"] = new OpenApiString("Cliente Exemplo"), ["cpf"] = new OpenApiString("52998224725"), ["telefone"] = new OpenApiString("11999999999"), ["email"] = new OpenApiString("cliente@email.com") },
+                ["veiculo"] = new OpenApiObject { ["placa"] = new OpenApiString("BRA2E19"), ["marca"] = new OpenApiString("Honda"), ["modelo"] = new OpenApiString("Civic"), ["ano"] = new OpenApiInteger(2022) },
+                ["servicos"] = new OpenApiArray { new OpenApiObject { ["servicoId"] = new OpenApiString("11111111-1111-1111-1111-111111111111"), ["quantidade"] = new OpenApiInteger(1), ["observacao"] = new OpenApiString("Substitua pelo ID de um servico cadastrado") } },
+                ["pecas"] = new OpenApiArray { new OpenApiObject { ["pecaId"] = new OpenApiString("22222222-2222-2222-2222-222222222222"), ["quantidade"] = new OpenApiInteger(1), ["observacao"] = new OpenApiString("Substitua pelo ID de uma peca cadastrada") } }
+            },
             _ => mediaType.Example
         };
     }

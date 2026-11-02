@@ -23,7 +23,9 @@ public sealed class ConsultarOrdemDeServicoHandler : IRequestHandler<ConsultarOr
         }
 
         var itens = os.Itens.Select(item => new ItemOrdemDeServicoDto(item.ServicoId, item.PecaId, item.Quantidade, item.Observacao, item.Executado, item.DataExecucao)).ToList();
-        var dto = new OrdemDeServicoDto(os.Id, os.Numero, os.Status.ToString(), os.ClienteId, os.VeiculoId, os.MecanicoId, os.DataAbertura, os.DataInicioExecucao, os.DataFinalizacao, os.Diagnostico, os.OrcamentoId, itens);
+        var servicosSolicitados = os.ServicosSolicitados.Select(item => new ServicoSolicitadoDto(item.ServicoId, item.Quantidade, item.Observacao)).ToList();
+        var pecasSolicitadas = os.PecasSolicitadas.Select(item => new PecaSolicitadaDto(item.PecaId, item.Quantidade, item.Observacao)).ToList();
+        var dto = new OrdemDeServicoDto(os.Id, os.Numero, os.Status.ToString(), os.ClienteId, os.VeiculoId, os.MecanicoId, os.DataAbertura, os.DataInicioExecucao, os.DataFinalizacao, os.Diagnostico, os.OrcamentoId, itens, servicosSolicitados, pecasSolicitadas);
 
         return Result.Success(dto);
     }

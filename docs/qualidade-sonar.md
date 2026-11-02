@@ -41,7 +41,7 @@ Secret:   SONAR_TOKEN
 
 O token nunca deve ser colocado no README, workflow, `.env.example` ou historico Git.
 
-O workflow executa build Release, os 96 testes unitarios e gera `coverage.opencover.xml` com `coverlet.msbuild`. O scanner recebe esse relatorio pela propriedade `sonar.cs.opencover.reportsPaths`, permitindo que o dashboard apresente cobertura C# em vez de apenas analisar o codigo estaticamente.
+O workflow executa build Release, toda a suite de testes unitarios e gera `coverage.opencover.xml` com `coverlet.msbuild`. O scanner recebe esse relatorio pela propriedade `sonar.cs.opencover.reportsPaths`, permitindo que o dashboard apresente cobertura C# em vez de apenas analisar o codigo estaticamente.
 
 A cobertura do Quality Gate foi delimitada ao projeto Domain, que apresentou `82,03%` de linhas na validacao OpenCover. API, Application e Infrastructure continuam sendo analisadas pelo Sonar para bugs, vulnerabilidades, hotspots, duplicacao e code smells, mas foram explicitamente excluidas do calculo de cobertura porque a meta academica definida para esta fase se refere aos dominios criticos. Essa delimitacao deve permanecer declarada no README e no relatorio, evitando apresentar o percentual como cobertura global da solucao.
 

@@ -35,6 +35,24 @@ public sealed class OrdensDeServicoController : ControllerBase
         return CreatedAtAction(nameof(Consultar), new { ordemDeServicoId = result.Value }, new { id = result.Value });
     }
 
+    [HttpPost("abertura")]
+    [Authorize(Roles = "Admin,Atendente")]
+    [ProducesResponseType(typeof(OrdemDeServicoCriadaDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Abrir(AbrirOrdemDeServicoCommand command, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return this.ToProblem(result);
+        }
+
+        return CreatedAtAction(nameof(Consultar), new { ordemDeServicoId = result.Value.Id }, result.Value);
+    }
+
     [HttpGet("{ordemDeServicoId:guid}")]
     [Authorize(Roles = "Admin,Atendente,Mecanico")]
     public async Task<IActionResult> Consultar(Guid ordemDeServicoId, CancellationToken cancellationToken)

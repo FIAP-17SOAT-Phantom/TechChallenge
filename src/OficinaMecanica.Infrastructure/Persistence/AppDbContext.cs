@@ -45,6 +45,7 @@ public class AppDbContext : IdentityDbContext<UsuarioSistema>, IUnitOfWork
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        builder.HasSequence<long>("ordem_servico_numero_seq").StartsAt(1).IncrementsBy(1);
         builder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
     }
 

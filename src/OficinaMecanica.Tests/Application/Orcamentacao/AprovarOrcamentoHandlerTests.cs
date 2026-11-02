@@ -144,6 +144,7 @@ public sealed class AprovarOrcamentoHandlerTests
         }
 
         public Task<Peca?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult<Peca?>(_peca.Id == id ? _peca : null);
+        public Task<IReadOnlyList<Peca>> GetByIdsAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<Peca>>(ids.Contains(_peca.Id) ? [_peca] : []);
         public Task<Peca?> GetByCodigoAsync(string codigo, CancellationToken cancellationToken = default) => Task.FromResult<Peca?>(_peca.Codigo == codigo ? _peca : null);
         public Task<IReadOnlyList<Peca>> GetAllAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<Peca>>([_peca]);
         public Task<IReadOnlyList<Peca>> GetComEstoqueBaixoAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<Peca>>([]);

@@ -13,6 +13,8 @@ public class ServicoRepository : IServicoRepository
     public async Task<Servico?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     => await _context.Servicos.FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
 
+    public async Task<IReadOnlyList<Servico>> GetByIdsAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken = default) => await _context.Servicos.Where(servico => ids.Contains(servico.Id)).AsNoTracking().ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyList<Servico>> GetAllAtivosAsync(CancellationToken cancellationToken = default)
     => await _context.Servicos.Where(s => s.Ativo).AsNoTracking().ToListAsync(cancellationToken);
 

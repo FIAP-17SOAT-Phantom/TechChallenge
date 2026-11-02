@@ -129,20 +129,57 @@ Content-Type: application/json
 }
 ```
 
-## 6. Criar Ordem de Servico
+## 6. Abrir Ordem de Servico com dados completos
 
 ```http
-POST /api/ordens-de-servico
+POST /api/ordens-de-servico/abertura
 Authorization: Bearer TOKEN_JWT
 Content-Type: application/json
 ```
 
 ```json
 {
-  "clienteId": "11111111-1111-1111-1111-111111111111",
-  "veiculoId": "22222222-2222-2222-2222-222222222222"
+  "cliente": {
+    "nome": "Cliente Exemplo",
+    "cpf": "52998224725",
+    "telefone": "11999999999",
+    "email": "cliente@email.com"
+  },
+  "veiculo": {
+    "placa": "BRA2E19",
+    "marca": "Honda",
+    "modelo": "Civic",
+    "ano": 2022
+  },
+  "servicos": [
+    {
+      "servicoId": "44444444-4444-4444-4444-444444444444",
+      "quantidade": 1,
+      "observacao": "Revisao solicitada pelo cliente"
+    }
+  ],
+  "pecas": [
+    {
+      "pecaId": "55555555-5555-5555-5555-555555555555",
+      "quantidade": 1,
+      "observacao": "Peca informada na abertura"
+    }
+  ]
 }
 ```
+
+Resposta `201 Created`:
+
+```json
+{
+  "id": "66666666-6666-6666-6666-666666666666",
+  "numero": "OS-0001"
+}
+```
+
+O cliente e localizado pelo CPF e o veiculo pela placa. Quando ainda nao existem, ambos sao cadastrados na mesma transacao da OS. Uma placa vinculada a outro cliente retorna `409 Conflict`. Se os demais dados enviados divergirem de um cadastro existente, a API tambem retorna `409` e orienta atualizar primeiro o cliente ou veiculo pelo endpoint especifico; nenhum dado mestre e sobrescrito silenciosamente. As pecas sao apenas registradas como solicitadas nesta etapa; a reserva de estoque continua ocorrendo depois da aprovacao do orcamento.
+
+O contrato anterior permanece disponivel em `POST /api/ordens-de-servico` para abrir uma OS a partir de `clienteId` e `veiculoId` previamente cadastrados.
 
 ## 7. Iniciar e registrar diagnostico
 

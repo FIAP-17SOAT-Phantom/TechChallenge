@@ -20,7 +20,9 @@ public sealed class ListarOrdensDeServicoHandler : IRequestHandler<ListarOrdensD
         return ordensDeServico.Select(ordemDeServico =>
         {
             var itens = ordemDeServico.Itens.Select(item => new ItemOrdemDeServicoDto(item.ServicoId, item.PecaId, item.Quantidade, item.Observacao, item.Executado, item.DataExecucao)).ToList();
-            return new OrdemDeServicoDto(ordemDeServico.Id, ordemDeServico.Numero, ordemDeServico.Status.ToString(), ordemDeServico.ClienteId, ordemDeServico.VeiculoId, ordemDeServico.MecanicoId, ordemDeServico.DataAbertura, ordemDeServico.DataInicioExecucao, ordemDeServico.DataFinalizacao, ordemDeServico.Diagnostico, ordemDeServico.OrcamentoId, itens);
+            var servicosSolicitados = ordemDeServico.ServicosSolicitados.Select(item => new ServicoSolicitadoDto(item.ServicoId, item.Quantidade, item.Observacao)).ToList();
+            var pecasSolicitadas = ordemDeServico.PecasSolicitadas.Select(item => new PecaSolicitadaDto(item.PecaId, item.Quantidade, item.Observacao)).ToList();
+            return new OrdemDeServicoDto(ordemDeServico.Id, ordemDeServico.Numero, ordemDeServico.Status.ToString(), ordemDeServico.ClienteId, ordemDeServico.VeiculoId, ordemDeServico.MecanicoId, ordemDeServico.DataAbertura, ordemDeServico.DataInicioExecucao, ordemDeServico.DataFinalizacao, ordemDeServico.Diagnostico, ordemDeServico.OrcamentoId, itens, servicosSolicitados, pecasSolicitadas);
         }).ToList();
     }
 
