@@ -7,10 +7,14 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+permissions:
+  contents: read
+
 jobs:
   build-and-analyze:
     name: Build, test and analyze
     runs-on: windows-latest
+    if: github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
 
     steps:
       - name: Set up JDK 21
@@ -54,12 +58,43 @@ jobs:
       - name: Restore
         run: dotnet restore src/OficinaMecanica.slnx
 
-      - name: Build, test and analyze
+      - name: Validate SonarQube Cloud token
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        shell: powershell
+        shell: pwsh
         run: |
-          & "${{ runner.temp }}\scanner\dotnet-sonarscanner" begin /k:"FIAP-17SOAT-Phantom_TechChallenge" /o:"fiap-17soat-phantom" /d:sonar.token="$env:SONAR_TOKEN" /d:sonar.cs.opencover.reportsPaths="${{ github.workspace }}/coverage/coverage.opencover.xml" /d:sonar.coverage.exclusions="**/OficinaMecanica.API/**,**/OficinaMecanica.Application/**,**/OficinaMecanica.Infrastructure/**" /d:sonar.exclusions="**/Persistence/Migrations/**" /d:sonar.dotnet.excludeTestProjects=true
+          if ([string]::IsNullOrWhiteSpace($env:SONAR_TOKEN)) {
+            throw "SONAR_TOKEN nao configurado. Crie um Repository secret em Settings > Secrets and variables > Actions."
+          }
+
+          if ($env:SONAR_TOKEN -ne $env:SONAR_TOKEN.Trim()) {
+            throw "SONAR_TOKEN possui espacos ou quebras de linha no inicio ou no fim. Salve apenas o token bruto."
+          }
+
+      - name: Begin SonarQube Cloud analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        shell: pwsh
+        run: |
+          & "${{ runner.temp }}\scanner\dotnet-sonarscanner" begin /k:"FIAP-17SOAT-Phantom_TechChallenge" /o:"fiap-17soat-phantom" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.token="$env:SONAR_TOKEN" /d:sonar.cs.opencover.reportsPaths="${{ github.workspace }}/coverage/coverage.opencover.xml" /d:sonar.coverage.exclusions="**/OficinaMecanica.API/**,**/OficinaMecanica.Application/**,**/OficinaMecanica.Infrastructure/**" /d:sonar.exclusions="**/Persistence/Migrations/**" /d:sonar.dotnet.excludeTestProjects=true
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build
+        shell: pwsh
+        run: |
           dotnet build src/OficinaMecanica.slnx --no-restore --no-incremental --configuration Release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run unit tests with coverage
+        shell: pwsh
+        run: |
           dotnet test src/OficinaMecanica.Tests/OficinaMecanica.Tests.csproj --no-build --configuration Release /p:CollectCoverage=true /p:CoverletOutput="${{ github.workspace }}/coverage/coverage" /p:CoverletOutputFormat=opencover
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: End SonarQube Cloud analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        shell: pwsh
+        run: |
           & "${{ runner.temp }}\scanner\dotnet-sonarscanner" end /d:sonar.token="$env:SONAR_TOKEN"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
