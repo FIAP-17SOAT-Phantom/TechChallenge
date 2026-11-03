@@ -71,8 +71,10 @@ public sealed class ProcessadorRespostaOrcamento : IProcessadorRespostaOrcamento
         if (execucaoResult.IsFailure)
             return execucaoResult;
 
-        _orcamentoRepository.Update(orcamento);
-        _ordemDeServicoRepository.Update(ordemDeServico);
+        // Sem Update() explicito: orcamento e OS foram carregados rastreados pelos repositorios,
+        // entao o change tracker persiste as alteracoes de escalares. Um Update() explicito marca
+        // tambem as owned collections (ItensOrcamento, ItensOrdemDeServico) como Modified, gerando
+        // UPDATEs que afetam 0 linhas entre contextos e lancam DbUpdateConcurrencyException.
         return Result.Success();
     }
 
@@ -121,7 +123,10 @@ public sealed class ProcessadorRespostaOrcamento : IProcessadorRespostaOrcamento
             if (reservaResult.IsFailure)
                 return Result.Failure(reservaResult.Error, reservaResult.ErrorType);
 
-            _pecaRepository.Update(item.Peca);
+            // Sem Update() explicito: a Peca foi carregada rastreada (GetByIdAsync com Include das
+            // Reservas), entao o change tracker marca a nova Reserva como Added (INSERT). Um Update()
+            // explicito marcaria a Reserva nova como Modified, gerando um UPDATE que afeta 0 linhas
+            // (a reserva ainda nao existe no banco) e lanca DbUpdateConcurrencyException.
         }
 
         return Result.Success();

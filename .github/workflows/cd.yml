@@ -23,8 +23,6 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_API: ghcr.io/${{ github.repository_owner }}/techchallenge-api
-  IMAGE_WORKER: ghcr.io/${{ github.repository_owner }}/techchallenge-worker
 
 jobs:
   # ------------------------------------------------------------------
@@ -60,13 +58,21 @@ jobs:
     needs: build-test
     outputs:
       image_tag: ${{ steps.meta.outputs.tag }}
+      image_api: ${{ steps.meta.outputs.image_api }}
+      image_worker: ${{ steps.meta.outputs.image_worker }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Definir tag da imagem
+      # O GHCR exige o nome do repositorio em minusculas; github.repository_owner
+      # pode conter maiusculas (ex.: FIAP-17SOAT-Phantom), entao normalizamos aqui.
+      - name: Definir tag e nomes das imagens (lowercase)
         id: meta
-        run: echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+        run: |
+          owner_lower="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          echo "image_api=ghcr.io/${owner_lower}/techchallenge-api" >> "$GITHUB_OUTPUT"
+          echo "image_worker=ghcr.io/${owner_lower}/techchallenge-worker" >> "$GITHUB_OUTPUT"
 
       - name: Login no GHCR
         uses: docker/login-action@v3
@@ -85,8 +91,8 @@ jobs:
           file: ./src/OficinaMecanica.API/Dockerfile
           push: true
           tags: |
-            ${{ env.IMAGE_API }}:${{ steps.meta.outputs.tag }}
-            ${{ env.IMAGE_API }}:latest
+            ${{ steps.meta.outputs.image_api }}:${{ steps.meta.outputs.tag }}
+            ${{ steps.meta.outputs.image_api }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -97,8 +103,8 @@ jobs:
           file: ./src/OficinaMecanica.Worker/Dockerfile
           push: true
           tags: |
-            ${{ env.IMAGE_WORKER }}:${{ steps.meta.outputs.tag }}
-            ${{ env.IMAGE_WORKER }}:latest
+            ${{ steps.meta.outputs.image_worker }}:${{ steps.meta.outputs.tag }}
+            ${{ steps.meta.outputs.image_worker }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -135,6 +141,11 @@ jobs:
       - name: Setup kubectl
         uses: azure/setup-kubectl@v4
 
+      - name: Setup kind
+        uses: helm/kind-action@v1
+        with:
+          install_only: true
+
       # Garante que o cluster responde antes de aplicar os manifestos.
       - name: Aguardar cluster pronto
         run: kubectl --context kind-oficina-mecanica wait --for=condition=Ready nodes --all --timeout=180s
@@ -143,6 +154,8 @@ jobs:
       - name: Carregar imagens no cluster kind
         env:
           IMAGE_TAG: ${{ needs.docker.outputs.image_tag }}
+          IMAGE_API: ${{ needs.docker.outputs.image_api }}
+          IMAGE_WORKER: ${{ needs.docker.outputs.image_worker }}
         run: |
           docker pull "${IMAGE_API}:${IMAGE_TAG}"
           docker pull "${IMAGE_WORKER}:${IMAGE_TAG}"
@@ -154,11 +167,10 @@ jobs:
       - name: Aplicar manifestos e migration do banco
         env:
           IMAGE_TAG: ${{ needs.docker.outputs.image_tag }}
+          IMAGE_API: ${{ needs.docker.outputs.image_api }}
+          IMAGE_WORKER: ${{ needs.docker.outputs.image_worker }}
         run: |
-          cd k8s/overlays/local
-          kubectl kustomize . > /tmp/base.yaml
-          kubectl --context kind-oficina-mecanica apply -k . \
-            || kubectl --context kind-oficina-mecanica apply -f /tmp/base.yaml
+          kubectl --context kind-oficina-mecanica apply -k k8s/overlays/local
           kubectl --context kind-oficina-mecanica -n oficina-mecanica \
             set image deployment/oficina-api api="${IMAGE_API}:${IMAGE_TAG}"
           kubectl --context kind-oficina-mecanica -n oficina-mecanica \

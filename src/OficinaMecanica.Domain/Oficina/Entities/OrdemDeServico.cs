@@ -128,8 +128,18 @@ public class OrdemDeServico : AggregateRoot
         if (itens is null || itens.Count == 0)
             return Result.Failure("Execucao deve possuir pelo menos um servico");
 
-        _itens.Clear();
-        _itens.AddRange(itens);
+        // Reconcilia a colecao em vez de recria-la com Clear + AddRange.
+        // Quando a OS e criada em um contexto EF (ex.: diagnostico, em um request) e a execucao
+        // e preparada em outro (aprovacao via webhook, outro request), o Clear gera um DELETE
+        // dos itens existentes que falha com "0 rows affected". Mantendo os itens que permanecem
+        // (mesma chave de negocio Servico/Peca) e so removendo/adicionando o que mudou, evitamos
+        // o DELETE desnecessario e preservamos a consistencia.
+        var chavesDesejadas = itens.Select(item => (item.ServicoId, item.PecaId)).ToHashSet();
+        _itens.RemoveAll(existente => !chavesDesejadas.Contains((existente.ServicoId, existente.PecaId)));
+
+        var chavesExistentes = _itens.Select(item => (item.ServicoId, item.PecaId)).ToHashSet();
+        _itens.AddRange(itens.Where(item => !chavesExistentes.Contains((item.ServicoId, item.PecaId))));
+
         return Result.Success();
     }
 

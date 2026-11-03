@@ -120,16 +120,34 @@ public sealed class Fase2IntegrationTests
         var sufixo = Guid.NewGuid().ToString("N")[..8];
         var numeros = new HashSet<string>();
 
-        // Criadas fora de ordem de prioridade de proposito, para validar a ordenacao.
-        var recebida = CriarOrdemComStatus($"OS-LST-REC-{sufixo}", StatusOS.Recebida);
-        var emDiagnostico = CriarOrdemComStatus($"OS-LST-DIA-{sufixo}", StatusOS.EmDiagnostico);
-        var aguardando = CriarOrdemComStatus($"OS-LST-AGU-{sufixo}", StatusOS.AguardandoAprovacao);
-        var emExecucao = CriarOrdemComStatus($"OS-LST-EXE-{sufixo}", StatusOS.EmExecucao);
-        var finalizada = CriarOrdemComStatus($"OS-LST-FIN-{sufixo}", StatusOS.Finalizada);
-        var entregue = CriarOrdemComStatus($"OS-LST-ENT-{sufixo}", StatusOS.Entregue);
+        // Cliente e veiculo reais para satisfazer as foreign keys da OS.
+        var cpf = Cpf.Criar(GerarCpfValido());
+        var email = Email.Criar($"listagem.{sufixo}@teste.com");
+        var placa = Placa.Criar(GerarPlaca());
+        Assert.True(cpf.IsSuccess);
+        Assert.True(email.IsSuccess);
+        Assert.True(placa.IsSuccess);
+        var cliente = new Cliente($"Cliente Listagem {sufixo}", cpf.Value, "11988887777", email.Value);
+        var veiculo = new Veiculo(placa.Value, "Fiat", "Argo", 2024, cliente.Id);
+        var servico = new Servico($"Servico Listagem {sufixo}", "Servico para listagem", 120m, 40);
+        await dbContext.Clientes.AddAsync(cliente);
+        await dbContext.Veiculos.AddAsync(veiculo);
+        await dbContext.Servicos.AddAsync(servico);
 
-        foreach (var ordem in new[] { recebida, emDiagnostico, aguardando, emExecucao, finalizada, entregue })
+        // Criadas fora de ordem de prioridade de proposito, para validar a ordenacao.
+        var statuses = new[]
         {
+            ("REC", StatusOS.Recebida),
+            ("DIA", StatusOS.EmDiagnostico),
+            ("AGU", StatusOS.AguardandoAprovacao),
+            ("EXE", StatusOS.EmExecucao),
+            ("FIN", StatusOS.Finalizada),
+            ("ENT", StatusOS.Entregue)
+        };
+
+        foreach (var (sigla, status) in statuses)
+        {
+            var ordem = CriarOrdemComStatus($"OS-LST-{sigla}-{sufixo}", cliente.Id, veiculo.Id, servico.Id, status);
             await dbContext.OrdensDeServico.AddAsync(ordem);
             numeros.Add(ordem.Numero);
         }
@@ -139,10 +157,9 @@ public sealed class Fase2IntegrationTests
     }
 
     // Monta uma OS diretamente no status desejado percorrendo a maquina de estados do agregado.
-    private static OrdemDeServico CriarOrdemComStatus(string numero, StatusOS statusDesejado)
+    private static OrdemDeServico CriarOrdemComStatus(string numero, Guid clienteId, Guid veiculoId, Guid servicoId, StatusOS statusDesejado)
     {
-        var servicoId = Guid.NewGuid();
-        var ordem = new OrdemDeServico(numero, Guid.NewGuid(), Guid.NewGuid());
+        var ordem = new OrdemDeServico(numero, clienteId, veiculoId);
         if (statusDesejado == StatusOS.Recebida)
         {
             return ordem;

@@ -46,6 +46,12 @@ public class ReservaEntityConfiguration : IEntityTypeConfiguration<Reserva>
     {
         builder.ToTable("Reservas");
         builder.HasKey(r => r.Id);
+        // O Id da Reserva e um Guid gerado pela aplicacao (classe base Entity), nao pelo banco.
+        // Sem ValueGeneratedNever, o EF assume ValueGeneratedOnAdd para a PK Guid e, ao adicionar
+        // uma nova Reserva (com Guid ja preenchido) a colecao de uma Peca ja rastreada, classifica
+        // a entidade como Modified (UPDATE) em vez de Added (INSERT) -- gerando "0 rows affected"
+        // na aprovacao do orcamento via webhook.
+        builder.Property(r => r.Id).ValueGeneratedNever();
 
         builder.Property(r => r.PecaId).IsRequired();
         builder.Property(r => r.OrdemDeServicoId).IsRequired();
