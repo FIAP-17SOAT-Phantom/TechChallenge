@@ -5,6 +5,8 @@ namespace OficinaMecanica.Domain.Oficina.Events;
 
 public sealed record OrdemDeServicoCriadaEvent(Guid OrdemDeServicoId, string Numero) : DomainEvent;
 
+public sealed record OrdemDeServicoStatusAlteradoEvent(Guid OrdemDeServicoId, string Numero, StatusOS? StatusAnterior, StatusOS StatusAtual) : DomainEvent;
+
 public sealed record OrdemDeServicoFinalizadaEvent(Guid OrdemDeServicoId) : DomainEvent;
 
 public sealed record OrdemDeServicoCanceladaEvent(Guid OrdemDeServicoId, StatusOS StatusAnterior) : DomainEvent;

@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oficina-config
+data:
+  ASPNETCORE_ENVIRONMENT: Production
+  ASPNETCORE_URLS: http://+:8080
+  DOTNET_ENVIRONMENT: Production
+  Jwt__Issuer: OficinaMecanica.API
+  Jwt__Audience: OficinaMecanica.Client
+  Jwt__ExpirationMinutes: "60"
+  Webhook__ToleranceSeconds: "300"
+  Database__MigrateOnly: "false"
+  Database__ApplyMigrationsOnStartup: "false"
+  Authentication__SeedOnStartup: "false"
+  Email__Provider: Log
+  Email__From: Oficina Mecanica <nao-responda@exemplo.com>
+  Outbox__PollingIntervalSeconds: "5"
+  Outbox__BatchSize: "20"
+  Outbox__MaxAttempts: "5"
+  Outbox__LockSeconds: "120"
+  POSTGRES_DB: oficina_mecanica
+  POSTGRES_USER: oficina
+  POSTGRES_HOST: postgres

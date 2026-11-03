@@ -1,0 +1,22 @@
+# Copie para terraform.tfvars e preencha com valores reais.
+# NAO versione terraform.tfvars (ele esta no .gitignore).
+
+cluster_name = "oficina-mecanica"
+namespace    = "oficina-mecanica"
+
+# Banco de dados
+postgres_enabled      = true
+postgres_database     = "oficina_mecanica"
+postgres_username     = "oficina"
+postgres_password     = "troque-por-uma-senha-forte"
+postgres_storage_size = "2Gi"
+
+# Segredos da aplicacao (minimo 32 bytes em jwt/webhook)
+jwt_secret     = "troque-por-um-segredo-jwt-com-no-minimo-32-bytes"
+webhook_secret = "troque-por-um-segredo-webhook-com-no-minimo-32-bytes"
+admin_email    = "admin@oficina.local"
+admin_password = "troque-por-uma-senha-forte"
+resend_api_key = ""
+
+# Aplicar manifestos Kustomize automaticamente (requer kubectl no PATH)
+apply_k8s_manifests = false

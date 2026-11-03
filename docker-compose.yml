@@ -5,6 +5,9 @@ services:
       dockerfile: OficinaMecanica.API/Dockerfile
     ports:
       - "8080:8080"
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 30s
     depends_on:
       db:
         condition: service_healthy
@@ -13,12 +16,48 @@ services:
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__DefaultConnection: Host=db;Database=${POSTGRES_DB:-oficina_mecanica};Username=${POSTGRES_USER:-oficina};Password=${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env}
       Jwt__Secret: ${JWT_SECRET:?Defina JWT_SECRET com pelo menos 32 caracteres}
+      Webhook__OrcamentoSecret: ${WEBHOOK_ORCAMENTO_SECRET:?Defina WEBHOOK_ORCAMENTO_SECRET com pelo menos 32 caracteres}
+      Webhook__ToleranceSeconds: 300
+      Database__MigrateOnly: "false"
+      Database__ApplyMigrationsOnStartup: "true"
+      Authentication__SeedOnStartup: "true"
       Authentication__SeedUsers__0__Email: ${ADMIN_EMAIL:-admin@oficina.local}
       Authentication__SeedUsers__0__Password: ${ADMIN_PASSWORD:?Defina ADMIN_PASSWORD atendendo a politica de senha}
       Authentication__SeedUsers__0__Role: Admin
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  worker:
+    build:
+      context: ./src
+      dockerfile: OficinaMecanica.Worker/Dockerfile
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 30s
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    environment:
+      DOTNET_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=db;Database=${POSTGRES_DB:-oficina_mecanica};Username=${POSTGRES_USER:-oficina};Password=${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env}
+      Email__Provider: ${EMAIL_PROVIDER:-Log}
+      Email__From: ${EMAIL_FROM:-Oficina Mecanica <nao-responda@exemplo.com>}
+      Email__ResendApiKey: ${RESEND_API_KEY:-}
+      Outbox__PollingIntervalSeconds: ${OUTBOX_POLLING_SECONDS:-5}
+      Outbox__BatchSize: ${OUTBOX_BATCH_SIZE:-20}
+      Outbox__MaxAttempts: ${OUTBOX_MAX_ATTEMPTS:-5}
+      Outbox__LockSeconds: ${OUTBOX_LOCK_SECONDS:-120}
 
   db:
     image: postgres:16-alpine
+    restart: unless-stopped
+    stop_grace_period: 30s
     ports:
       - "5432:5432"
     environment:
@@ -29,7 +68,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 10s
     volumes:
       - postgres_data:/var/lib/postgresql/data
 

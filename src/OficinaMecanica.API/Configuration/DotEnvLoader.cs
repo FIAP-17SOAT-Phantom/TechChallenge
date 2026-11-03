@@ -6,7 +6,17 @@ public static class DotEnvLoader
     {
         ["JWT_SECRET"] = "Jwt__Secret",
         ["ADMIN_EMAIL"] = "Authentication__SeedUsers__0__Email",
-        ["ADMIN_PASSWORD"] = "Authentication__SeedUsers__0__Password"
+        ["ADMIN_PASSWORD"] = "Authentication__SeedUsers__0__Password",
+        ["WEBHOOK_ORCAMENTO_SECRET"] = "Webhook__OrcamentoSecret",
+        ["EMAIL_PROVIDER"] = "Email__Provider",
+        ["EMAIL_FROM"] = "Email__From",
+        ["RESEND_API_KEY"] = "Email__ResendApiKey",
+        ["OUTBOX_POLLING_SECONDS"] = "Outbox__PollingIntervalSeconds",
+        ["OUTBOX_BATCH_SIZE"] = "Outbox__BatchSize",
+        ["OUTBOX_MAX_ATTEMPTS"] = "Outbox__MaxAttempts",
+        ["OUTBOX_LOCK_SECONDS"] = "Outbox__LockSeconds",
+        ["DATABASE_APPLY_MIGRATIONS_ON_STARTUP"] = "Database__ApplyMigrationsOnStartup",
+        ["AUTHENTICATION_SEED_ON_STARTUP"] = "Authentication__SeedOnStartup"
     };
 
     public static void Load()

@@ -13,6 +13,9 @@ public sealed class OrdemDeServicoTests
 
         Assert.Equal(StatusOS.Recebida, ordemDeServico.Status);
         Assert.Contains(ordemDeServico.DomainEvents, evento => evento is OrdemDeServicoCriadaEvent);
+        var statusEvent = Assert.Single(ordemDeServico.DomainEvents.OfType<OrdemDeServicoStatusAlteradoEvent>());
+        Assert.Null(statusEvent.StatusAnterior);
+        Assert.Equal(StatusOS.Recebida, statusEvent.StatusAtual);
     }
 
     [Fact]
@@ -40,11 +43,51 @@ public sealed class OrdemDeServicoTests
     public void IniciarExecucao_QuandoRecebida_DeveFalhar()
     {
         var ordemDeServico = CriarOrdemDeServico();
+        ordemDeServico.ClearDomainEvents();
 
         var result = ordemDeServico.IniciarExecucao();
 
         Assert.True(result.IsFailure);
         Assert.Equal(StatusOS.Recebida, ordemDeServico.Status);
+        Assert.Empty(ordemDeServico.DomainEvents);
+    }
+
+    [Fact]
+    public void FluxoCompleto_DeveEmitirEventoParaCadaAlteracaoDeStatus()
+    {
+        var ordemDeServico = CriarOrdemDeServico();
+        var item = new ItemOS(Guid.NewGuid(), null, 1);
+        ordemDeServico.ClearDomainEvents();
+
+        ordemDeServico.IniciarDiagnostico(Guid.NewGuid());
+        AssertStatusEvent(ordemDeServico, StatusOS.Recebida, StatusOS.EmDiagnostico);
+
+        ordemDeServico.RegistrarDiagnostico("Diagnostico", [item]);
+        AssertStatusEvent(ordemDeServico, StatusOS.EmDiagnostico, StatusOS.AguardandoAprovacao);
+
+        ordemDeServico.IniciarExecucao();
+        AssertStatusEvent(ordemDeServico, StatusOS.AguardandoAprovacao, StatusOS.EmExecucao);
+
+        ordemDeServico.RegistrarServicoExecutado(item.ServicoId);
+        ordemDeServico.ClearDomainEvents();
+        ordemDeServico.Finalizar();
+        AssertStatusEvent(ordemDeServico, StatusOS.EmExecucao, StatusOS.Finalizada);
+
+        ordemDeServico.RegistrarEntrega();
+        AssertStatusEvent(ordemDeServico, StatusOS.Finalizada, StatusOS.Entregue);
+    }
+
+    [Fact]
+    public void IniciarDiagnostico_DeveAvancarDataUltimaAtualizacao()
+    {
+        var ordemDeServico = CriarOrdemDeServico();
+        var dataAnterior = ordemDeServico.DataUltimaAtualizacao;
+        SpinWait.SpinUntil(() => DateTime.UtcNow > dataAnterior, TimeSpan.FromSeconds(1));
+
+        var result = ordemDeServico.IniciarDiagnostico(Guid.NewGuid());
+
+        Assert.True(result.IsSuccess);
+        Assert.True(ordemDeServico.DataUltimaAtualizacao > dataAnterior);
     }
 
     [Fact]
@@ -97,4 +140,12 @@ public sealed class OrdemDeServicoTests
     }
 
     private static OrdemDeServico CriarOrdemDeServico() => new("OS-0001", Guid.NewGuid(), Guid.NewGuid());
+
+    private static void AssertStatusEvent(OrdemDeServico ordemDeServico, StatusOS statusAnterior, StatusOS statusAtual)
+    {
+        var statusEvent = Assert.Single(ordemDeServico.DomainEvents.OfType<OrdemDeServicoStatusAlteradoEvent>());
+        Assert.Equal(statusAnterior, statusEvent.StatusAnterior);
+        Assert.Equal(statusAtual, statusEvent.StatusAtual);
+        ordemDeServico.ClearDomainEvents();
+    }
 }

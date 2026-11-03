@@ -10,6 +10,7 @@ public interface IOrdemDeServicoRepository : IRepository<OrdemDeServico>
     Task<IReadOnlyList<OrdemDeServico>> GetPagedByClienteIdAsync(Guid clienteId, StatusOS? status, int page, int pageSize, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<OrdemDeServico>> GetByStatusAsync(StatusOS status, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<OrdemDeServico>> GetAllAsync(int page, int pageSize, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<OrdemDeServico>> GetFilaOperacionalAsync(int page, int pageSize, CancellationToken cancellationToken = default);
     Task<bool> ExistsByVeiculoIdAsync(Guid veiculoId, CancellationToken cancellationToken = default);
     Task<TimeSpan?> GetTempoMedioExecucaoAsync(CancellationToken cancellationToken = default);
     Task<string> GerarProximoNumeroAsync(CancellationToken cancellationToken = default);

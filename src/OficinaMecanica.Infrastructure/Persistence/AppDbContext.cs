@@ -9,8 +9,11 @@ using OficinaMecanica.Domain.CatalogoServicos.Entities;
 using OficinaMecanica.Domain.Common;
 using OficinaMecanica.Domain.Estoque.Entities;
 using OficinaMecanica.Domain.Oficina.Entities;
+using OficinaMecanica.Domain.Oficina.Events;
 using OficinaMecanica.Domain.Orcamentacao.Entities;
+using OficinaMecanica.Domain.Orcamentacao.Events;
 using OficinaMecanica.Infrastructure.Identity;
+using OficinaMecanica.Infrastructure.Notifications;
 
 namespace OficinaMecanica.Infrastructure.Persistence;
 
@@ -31,9 +34,11 @@ public class AppDbContext : IdentityDbContext<UsuarioSistema>, IUnitOfWork
     public DbSet<Veiculo> Veiculos => Set<Veiculo>();
     public DbSet<OrdemDeServico> OrdensDeServico => Set<OrdemDeServico>();
     public DbSet<Orcamento> Orcamentos => Set<Orcamento>();
+    public DbSet<EventoRespostaOrcamento> EventosRespostaOrcamento => Set<EventoRespostaOrcamento>();
     public DbSet<Peca> Pecas => Set<Peca>();
     public DbSet<Servico> Servicos => Set<Servico>();
     public DbSet<AlertaEstoque> AlertasEstoque => Set<AlertaEstoque>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     public AppDbContext(DbContextOptions<AppDbContext> options, IMediator mediator, ILogger<AppDbContext> logger)
     : base(options)
@@ -67,6 +72,13 @@ public class AppDbContext : IdentityDbContext<UsuarioSistema>, IUnitOfWork
         .SelectMany(a => a.DomainEvents)
         .ToList();
 
+        var outboxMessages = domainEvents.Where(ShouldPersistInOutbox).Where(domainEvent => !OutboxMessages.Local.Any(message => message.Id == domainEvent.EventId)).Select(OutboxMessage.FromDomainEvent).ToList();
+
+        if (outboxMessages.Count > 0)
+        {
+            await OutboxMessages.AddRangeAsync(outboxMessages, cancellationToken);
+        }
+
         // Persistir primeiro
         var result = await base.SaveChangesAsync(cancellationToken);
 
@@ -91,9 +103,15 @@ public class AppDbContext : IdentityDbContext<UsuarioSistema>, IUnitOfWork
         return result;
     }
 
-    public async Task<T> ExecuteInTransactionAsync<T>(Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken = default)
+    private static bool ShouldPersistInOutbox(IDomainEvent domainEvent) => domainEvent is OrdemDeServicoStatusAlteradoEvent or OrcamentoEnviadoEvent or OrcamentoAprovadoEvent or OrcamentoRejeitadoEvent;
+
+    public Task<T> ExecuteInTransactionAsync<T>(Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken = default) => ExecuteTransactionAsync(operation, IsolationLevel.Serializable, cancellationToken);
+
+    public Task<T> ExecuteInReadCommittedTransactionAsync<T>(Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken = default) => ExecuteTransactionAsync(operation, IsolationLevel.ReadCommitted, cancellationToken);
+
+    private async Task<T> ExecuteTransactionAsync<T>(Func<CancellationToken, Task<T>> operation, IsolationLevel isolationLevel, CancellationToken cancellationToken)
     {
-        await using var transaction = await Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        await using var transaction = await Database.BeginTransactionAsync(isolationLevel, cancellationToken);
 
         try
         {

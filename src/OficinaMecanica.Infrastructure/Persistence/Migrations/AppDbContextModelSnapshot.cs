@@ -369,6 +369,11 @@ namespace OficinaMecanica.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("DataInicioExecucao")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime>("DataUltimaAtualizacao")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
                     b.Property<string>("Diagnostico")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
@@ -404,6 +409,57 @@ namespace OficinaMecanica.Infrastructure.Persistence.Migrations
                     b.HasIndex("VeiculoId");
 
                     b.ToTable("OrdensDeServico", (string)null);
+                });
+
+            modelBuilder.Entity("OficinaMecanica.Domain.Orcamentacao.Entities.EventoRespostaOrcamento", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Erro")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ExternalEventId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("OrcamentoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("ProcessadoComSucesso")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("ProcessadoEmUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("RecebidoEmUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Resposta")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<long>("TimestampUnix")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("TipoErro")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExternalEventId")
+                        .IsUnique();
+
+                    b.HasIndex("OrcamentoId");
+
+                    b.HasIndex("RecebidoEmUtc");
+
+                    b.ToTable("EventosRespostaOrcamento", (string)null);
                 });
 
             modelBuilder.Entity("OficinaMecanica.Domain.Orcamentacao.Entities.Orcamento", b =>
@@ -515,6 +571,55 @@ namespace OficinaMecanica.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("UserNameIndex");
 
                     b.ToTable("AspNetUsers", (string)null);
+                });
+
+            modelBuilder.Entity("OficinaMecanica.Infrastructure.Notifications.OutboxMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("DeadLetterOnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid?>("LockedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("LockedUntilUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("NextAttemptOnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("OccurredOnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime?>("ProcessedOnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LockedUntilUtc");
+
+                    b.HasIndex("ProcessedOnUtc", "DeadLetterOnUtc", "NextAttemptOnUtc", "Attempts");
+
+                    b.ToTable("OutboxMessages", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -834,6 +939,15 @@ namespace OficinaMecanica.Infrastructure.Persistence.Migrations
                     b.Navigation("PecasSolicitadas");
 
                     b.Navigation("ServicosSolicitados");
+                });
+
+            modelBuilder.Entity("OficinaMecanica.Domain.Orcamentacao.Entities.EventoRespostaOrcamento", b =>
+                {
+                    b.HasOne("OficinaMecanica.Domain.Orcamentacao.Entities.Orcamento", null)
+                        .WithMany()
+                        .HasForeignKey("OrcamentoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("OficinaMecanica.Domain.Orcamentacao.Entities.Orcamento", b =>

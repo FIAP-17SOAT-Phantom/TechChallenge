@@ -24,7 +24,8 @@ public sealed partial class ApiDocumentationOperationFilter : IOperationFilter
         ["RegistrarDiagnostico"] = "Registra diagnostico, servicos e pecas sugeridos",
         ["RegistrarServicoExecutado"] = "Marca um servico aprovado como executado",
         ["Aprovar"] = "Aprova o orcamento, reserva estoque e inicia a execucao",
-        ["Finalizar"] = "Consome as reservas e finaliza a ordem de servico"
+        ["Finalizar"] = "Consome as reservas e finaliza a ordem de servico",
+        ["ProcessarRespostaOrcamento"] = "Recebe aprovacao ou recusa externa de um orcamento com assinatura HMAC"
     };
 
     public void Apply(OpenApiOperation operation, OperationFilterContext context)

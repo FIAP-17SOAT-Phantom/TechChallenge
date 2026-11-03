@@ -36,3 +36,22 @@ postgres_data/
 ## Environment
 appsettings.Production.json
 *.env
+
+## Terraform
+infra/.terraform/
+infra/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+
+## Kubernetes (segredos reais nunca versionados)
+k8s/**/secret.yaml
+!k8s/**/secret.example.yaml
+
+## Build/test output temporarios
+build-out.txt
+test-out.txt
+coverage/

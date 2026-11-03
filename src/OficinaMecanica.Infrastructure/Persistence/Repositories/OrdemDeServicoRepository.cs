@@ -51,18 +51,33 @@ public class OrdemDeServicoRepository : IOrdemDeServicoRepository
     .OrderByDescending(os => os.DataAbertura)
     .ToListAsync(cancellationToken);
 
+    /// <summary>
+    /// Listagem principal de ordens de servico (requisito Fase 2):
+    /// - exclui de forma logica (sem remover do banco) as OS Finalizadas, Entregues e Canceladas;
+    /// - ordena por prioridade de status: Em Execucao > Aguardando Aprovacao > Em Diagnostico > Recebida;
+    /// - dentro de cada status, as mais antigas primeiro (DataAbertura ascendente).
+    /// </summary>
     public async Task<IReadOnlyList<OrdemDeServico>> GetAllAsync(int page, int pageSize, CancellationToken cancellationToken = default)
     => await _context.OrdensDeServico
     .Include(os => os.Itens)
     .Include(os => os.ServicosSolicitados)
     .Include(os => os.PecasSolicitadas)
+    .Where(os => os.Status == StatusOS.EmExecucao
+        || os.Status == StatusOS.AguardandoAprovacao
+        || os.Status == StatusOS.EmDiagnostico
+        || os.Status == StatusOS.Recebida)
     .AsNoTracking()
     .AsSplitQuery()
-    .OrderByDescending(os => os.DataAbertura)
+    .OrderByDescending(os => os.Status == StatusOS.EmExecucao)
+    .ThenByDescending(os => os.Status == StatusOS.AguardandoAprovacao)
+    .ThenByDescending(os => os.Status == StatusOS.EmDiagnostico)
+    .ThenBy(os => os.DataAbertura)
     .ThenBy(os => os.Id)
     .Skip((page - 1) * pageSize)
     .Take(pageSize)
         .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<OrdemDeServico>> GetFilaOperacionalAsync(int page, int pageSize, CancellationToken cancellationToken = default) => await _context.OrdensDeServico.Where(os => os.Status == StatusOS.EmExecucao || os.Status == StatusOS.AguardandoAprovacao || os.Status == StatusOS.EmDiagnostico || os.Status == StatusOS.Recebida).AsNoTracking().OrderByDescending(os => os.Status == StatusOS.EmExecucao).ThenByDescending(os => os.Status == StatusOS.AguardandoAprovacao).ThenByDescending(os => os.Status == StatusOS.EmDiagnostico).ThenBy(os => os.DataAbertura).ThenBy(os => os.Id).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
 
     public async Task<bool> ExistsByVeiculoIdAsync(Guid veiculoId, CancellationToken cancellationToken = default)
     => await _context.OrdensDeServico.AnyAsync(os => os.VeiculoId == veiculoId, cancellationToken);

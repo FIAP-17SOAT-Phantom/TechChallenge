@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -10,6 +11,7 @@ using OficinaMecanica.Infrastructure.Identity;
 using OficinaMecanica.API.OpenApi;
 using OficinaMecanica.API.Configuration;
 using OficinaMecanica.API.Authentication;
+using OficinaMecanica.API.Health;
 using System.Text;
 
 DotEnvLoader.Load();
@@ -23,6 +25,8 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("postgresql", tags: ["ready"]);
+builder.Services.Configure<HostOptions>(options => options.ShutdownTimeout = TimeSpan.FromSeconds(30));
 
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("Jwt:Issuer nao configurado");
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? throw new InvalidOperationException("Jwt:Audience nao configurado");
@@ -90,8 +94,27 @@ app.UseMiddleware<UserAccessMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false }).AllowAnonymous();
+app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = registration => registration.Tags.Contains("ready") }).AllowAnonymous();
 
-await app.Services.SeedIdentityAsync();
+var migrateOnly = builder.Configuration.GetValue<bool>("Database:MigrateOnly");
+var applyMigrationsOnStartup = builder.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup");
+var seedOnStartup = builder.Configuration.GetValue<bool>("Authentication:SeedOnStartup");
+
+if (migrateOnly || applyMigrationsOnStartup)
+{
+    await app.Services.MigrateDatabaseAsync();
+}
+
+if (seedOnStartup)
+{
+    await app.Services.SeedIdentityAsync();
+}
+
+if (migrateOnly)
+{
+    return;
+}
 
 await app.RunAsync();
 

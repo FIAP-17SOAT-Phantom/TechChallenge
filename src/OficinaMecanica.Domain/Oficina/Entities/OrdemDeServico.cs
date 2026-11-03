@@ -12,6 +12,7 @@ public class OrdemDeServico : AggregateRoot
     public Guid? MecanicoId { get; private set; }
     public StatusOS Status { get; private set; }
     public DateTime DataAbertura { get; private set; }
+    public DateTime DataUltimaAtualizacao { get; private set; }
     public DateTime? DataInicioExecucao { get; private set; }
     public DateTime? DataFinalizacao { get; private set; }
     public string? Diagnostico { get; private set; }
@@ -42,10 +43,13 @@ public class OrdemDeServico : AggregateRoot
         Numero = numero;
         ClienteId = clienteId;
         VeiculoId = veiculoId;
+        var agora = DateTime.UtcNow;
         Status = StatusOS.Recebida;
-        DataAbertura = DateTime.UtcNow;
+        DataAbertura = agora;
+        DataUltimaAtualizacao = agora;
 
         RaiseDomainEvent(new OrdemDeServicoCriadaEvent(Id, numero));
+        RaiseDomainEvent(new OrdemDeServicoStatusAlteradoEvent(Id, Numero, null, Status));
     }
 
     public OrdemDeServico(string numero, Guid clienteId, Guid veiculoId, IReadOnlyCollection<ServicoSolicitadoOS> servicosSolicitados, IReadOnlyCollection<PecaSolicitadaOS> pecasSolicitadas) : this(numero, clienteId, veiculoId)
@@ -75,7 +79,7 @@ public class OrdemDeServico : AggregateRoot
             return Result.Failure("Mecanico e obrigatorio");
 
         MecanicoId = mecanicoId;
-        Status = StatusOS.EmDiagnostico;
+        AlterarStatus(StatusOS.EmDiagnostico);
         return Result.Success();
     }
 
@@ -93,7 +97,7 @@ public class OrdemDeServico : AggregateRoot
         Diagnostico = diagnostico;
         _itens.Clear();
         _itens.AddRange(itens);
-        Status = StatusOS.AguardandoAprovacao;
+        AlterarStatus(StatusOS.AguardandoAprovacao);
         return Result.Success();
     }
 
@@ -111,7 +115,7 @@ public class OrdemDeServico : AggregateRoot
         if (Status != StatusOS.AguardandoAprovacao)
             return Result.Failure("OS deve estar Aguardando Aprovacao para iniciar execucao");
 
-        Status = StatusOS.EmExecucao;
+        AlterarStatus(StatusOS.EmExecucao);
         DataInicioExecucao = DateTime.UtcNow;
         return Result.Success();
     }
@@ -159,7 +163,7 @@ public class OrdemDeServico : AggregateRoot
         if (_itens.Any(i => !i.Executado))
             return Result.Failure("Todos os servicos devem ser executados antes da finalizacao da OS");
 
-        Status = StatusOS.Finalizada;
+        AlterarStatus(StatusOS.Finalizada);
         DataFinalizacao = DateTime.UtcNow;
 
         RaiseDomainEvent(new OrdemDeServicoFinalizadaEvent(Id));
@@ -171,7 +175,7 @@ public class OrdemDeServico : AggregateRoot
         if (Status != StatusOS.Finalizada)
             return Result.Failure("OS deve estar Finalizada para registrar entrega");
 
-        Status = StatusOS.Entregue;
+        AlterarStatus(StatusOS.Entregue);
         return Result.Success();
     }
 
@@ -181,9 +185,17 @@ public class OrdemDeServico : AggregateRoot
             return Result.Failure("Nao e possivel cancelar OS neste status");
 
         var statusAnterior = Status;
-        Status = StatusOS.Cancelada;
+        AlterarStatus(StatusOS.Cancelada);
 
         RaiseDomainEvent(new OrdemDeServicoCanceladaEvent(Id, statusAnterior));
         return Result.Success();
+    }
+
+    private void AlterarStatus(StatusOS novoStatus)
+    {
+        var statusAnterior = Status;
+        Status = novoStatus;
+        DataUltimaAtualizacao = DateTime.UtcNow;
+        RaiseDomainEvent(new OrdemDeServicoStatusAlteradoEvent(Id, Numero, statusAnterior, novoStatus));
     }
 }

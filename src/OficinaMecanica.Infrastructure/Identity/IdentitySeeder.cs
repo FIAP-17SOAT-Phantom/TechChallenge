@@ -10,15 +10,19 @@ public static class IdentitySeeder
 {
     private static readonly string[] Roles = ["Admin", "Atendente", "Mecanico", "Cliente"];
 
-    public static async Task SeedIdentityAsync(this IServiceProvider services, CancellationToken cancellationToken = default)
+    public static async Task MigrateDatabaseAsync(this IServiceProvider services, CancellationToken cancellationToken = default)
     {
         await using var scope = services.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await dbContext.Database.MigrateAsync(cancellationToken);
+    }
+
+    public static async Task SeedIdentityAsync(this IServiceProvider services, CancellationToken cancellationToken = default)
+    {
+        await using var scope = services.CreateAsyncScope();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<UsuarioSistema>>();
         var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-
-        await dbContext.Database.MigrateAsync(cancellationToken);
 
         await SeedRolesAsync(roleManager);
 

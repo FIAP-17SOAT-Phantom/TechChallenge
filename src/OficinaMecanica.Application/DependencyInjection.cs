@@ -3,6 +3,8 @@ using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using OficinaMecanica.Application.Common.Behaviors;
+using OficinaMecanica.Application.Common.Interfaces;
+using OficinaMecanica.Application.UseCases.Orcamentacao.Services;
 
 namespace OficinaMecanica.Application;
 
@@ -21,6 +23,7 @@ public static class DependencyInjection
 
         // FluentValidation - registra todos os validators do assembly
         services.AddValidatorsFromAssembly(assembly);
+        services.AddScoped<IProcessadorRespostaOrcamento, ProcessadorRespostaOrcamento>();
 
         return services;
     }

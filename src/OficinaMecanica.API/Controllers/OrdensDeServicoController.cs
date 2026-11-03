@@ -67,12 +67,37 @@ public sealed class OrdensDeServicoController : ControllerBase
         return Ok(result.Value);
     }
 
+    [HttpGet("{ordemDeServicoId:guid}/status")]
+    [Authorize(Roles = "Admin,Atendente,Mecanico")]
+    [ProducesResponseType(typeof(StatusOrdemDeServicoDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ConsultarStatus(Guid ordemDeServicoId, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new ConsultarStatusOrdemDeServicoQuery(ordemDeServicoId), cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return this.ToProblem(result);
+        }
+
+        return Ok(result.Value);
+    }
+
     [HttpGet]
     [Authorize(Roles = "Admin,Atendente,Mecanico")]
     public async Task<IActionResult> Listar([FromQuery] Guid? clienteId, [FromQuery] StatusOS? status, [FromQuery] int pagina = 1, [FromQuery] int tamanhoPagina = 20, CancellationToken cancellationToken = default)
     {
         var ordensDeServico = await _mediator.Send(new ListarOrdensDeServicoQuery(clienteId, status, pagina, tamanhoPagina), cancellationToken);
 
+        return Ok(ordensDeServico);
+    }
+
+    [HttpGet("fila-operacional")]
+    [Authorize(Roles = "Admin,Atendente,Mecanico")]
+    [ProducesResponseType(typeof(IReadOnlyList<OrdemDeServicoOperacionalDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ListarFilaOperacional([FromQuery] int pagina = 1, [FromQuery] int tamanhoPagina = 20, CancellationToken cancellationToken = default)
+    {
+        var ordensDeServico = await _mediator.Send(new ListarFilaOperacionalQuery(pagina, tamanhoPagina), cancellationToken);
         return Ok(ordensDeServico);
     }
 
@@ -189,6 +214,28 @@ public sealed class OrdensDeServicoController : ControllerBase
         if (result.Value.ClienteId != clienteId)
         {
             return Forbid();
+        }
+
+        return Ok(result.Value);
+    }
+
+    [HttpGet("minhas/{ordemDeServicoId:guid}/status")]
+    [Authorize(Roles = "Cliente")]
+    [ProducesResponseType(typeof(StatusOrdemDeServicoDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ConsultarStatusMinhaOrdemDeServico(Guid ordemDeServicoId, CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(User.FindFirstValue("cliente_id"), out var clienteId))
+        {
+            return Forbid();
+        }
+
+        var result = await _mediator.Send(new ConsultarStatusOrdemDeServicoQuery(ordemDeServicoId, clienteId), cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return this.ToProblem(result);
         }
 
         return Ok(result.Value);

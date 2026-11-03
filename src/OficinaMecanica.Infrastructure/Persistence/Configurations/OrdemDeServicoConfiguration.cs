@@ -28,6 +28,7 @@ public class OrdemDeServicoConfiguration : IEntityTypeConfiguration<OrdemDeServi
         builder.Property(os => os.ClienteId).IsRequired();
         builder.Property(os => os.VeiculoId).IsRequired();
         builder.Property(os => os.DataAbertura).IsRequired();
+        builder.Property(os => os.DataUltimaAtualizacao).IsRequired().HasDefaultValueSql("CURRENT_TIMESTAMP");
         builder.Property(os => os.DataInicioExecucao);
         builder.Property(os => os.Diagnostico).HasMaxLength(2000);
 

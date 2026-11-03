@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Tech Challenge Fase 2 - Guia de Estudo Passo a Passo</title>
+<style>
+  :root { --azul:#1a3b6e; --azul2:#2a5db0; --cinza:#444; --claro:#f4f6fa; --borda:#d6deeb; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: #1e1e1e; font-size: 12px; line-height: 1.55; margin: 0; }
+  h1 { color: var(--azul); font-size: 26px; margin: 0 0 4px; }
+  h2 { color: var(--azul); font-size: 19px; border-bottom: 3px solid var(--azul2); padding-bottom: 5px; margin-top: 34px; page-break-after: avoid; }
+  h3 { color: var(--azul2); font-size: 15px; margin-top: 22px; page-break-after: avoid; }
+  h4 { color: var(--cinza); font-size: 13px; margin: 16px 0 4px; }
+  p { margin: 7px 0; text-align: justify; }
+  code { background: #eef1f7; padding: 1px 5px; border-radius: 3px; font-family: Consolas, monospace; font-size: 11px; color: #9c2d41; }
+  pre { background: #1e2836; color: #e8ecf4; padding: 12px 14px; border-radius: 6px; font-family: Consolas, monospace; font-size: 10.5px; line-height: 1.4; overflow-x: auto; page-break-inside: avoid; white-space: pre-wrap; }
+  pre code { background: none; color: inherit; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 11px; page-break-inside: avoid; }
+  th { background: var(--azul); color: #fff; text-align: left; padding: 7px 9px; }
+  td { border: 1px solid var(--borda); padding: 6px 9px; vertical-align: top; }
+  tr:nth-child(even) td { background: var(--claro); }
+  ul, ol { margin: 7px 0 7px 4px; padding-left: 20px; }
+  li { margin: 3px 0; }
+  .capa { text-align: center; padding-top: 150px; page-break-after: always; }
+  .capa .sub { color: var(--cinza); font-size: 15px; margin-top: 10px; }
+  .capa .meta { margin-top: 70px; font-size: 13px; color: var(--cinza); }
+  .box { background: var(--claro); border-left: 4px solid var(--azul2); padding: 10px 14px; margin: 12px 0; border-radius: 0 5px 5px 0; page-break-inside: avoid; }
+  .box.alerta { border-left-color: #c9892f; background: #fdf6ec; }
+  .tag { display: inline-block; background: var(--azul2); color: #fff; font-size: 10px; padding: 1px 7px; border-radius: 10px; }
+  .toc a { color: var(--azul2); text-decoration: none; }
+  .toc li { margin: 4px 0; }
+  .sumario-sec { page-break-after: always; }
+  .pequeno { font-size: 10.5px; color: var(--cinza); }
+</style>
+</head>
+<body>
+
+<div class="capa">
+  <h1>Tech Challenge &mdash; Fase 2</h1>
+  <div class="sub">Guia de Estudo Passo a Passo</div>
+  <div class="sub">Sistema de Gestao de Oficina Mecanica</div>
+  <div class="sub">.NET 8 &bull; Clean Architecture &bull; Docker &bull; Kubernetes &bull; Terraform &bull; CI/CD</div>
+  <div class="meta">
+    Documento tecnico de estudo pessoal<br>
+    Grupo Phantom &bull; FIAP 17SOAT
+  </div>
+</div>
+
+<div class="sumario-sec">
+<h2>Sumario</h2>
+<ol class="toc">
+  <li>Visao geral da Fase 2</li>
+  <li>Conceitos-base (para quem esta estudando)</li>
+  <li>A arquitetura da aplicacao (Clean Architecture)</li>
+  <li>Fluxo completo da Ordem de Servico</li>
+  <li>As APIs obrigatorias da Fase 2 (uma a uma)</li>
+  <li>Notificacao de status por e-mail (Outbox + Worker)</li>
+  <li>Conteinerizacao (Docker e docker-compose)</li>
+  <li>Orquestracao com Kubernetes (manifestos)</li>
+  <li>Infraestrutura como Codigo (Terraform)</li>
+  <li>CI/CD (GitHub Actions)</li>
+  <li>Testes automatizados</li>
+  <li>Como rodar tudo (roteiro pratico)</li>
+</ol>
+</div>
+
+<h2>1. Visao geral da Fase 2</h2>
+<p>A Fase 1 entregou um sistema que ja gerencia clientes, veiculos, pecas e ordens de servico. A Fase 2 nao reescreve esse sistema: ela o <strong>evolui</strong> para ser mais organizado, testavel e preparado para escalar. O objetivo e transformar "um programa que funciona na minha maquina" em "um sistema que roda de forma confiavel em um cluster, com deploy automatizado".</p>
+<p>Os quatro grandes temas da fase sao:</p>
+<table>
+  <tr><th>Tema</th><th>O que significa na pratica</th></tr>
+  <tr><td><strong>Qualidade de codigo</strong></td><td>Clean Code e Clean Architecture: separar o codigo em camadas com responsabilidades claras, e cobrir os fluxos criticos com testes automatizados.</td></tr>
+  <tr><td><strong>Conteinerizacao</strong></td><td>Empacotar a aplicacao em imagens Docker, para que rode igual em qualquer lugar.</td></tr>
+  <tr><td><strong>Orquestracao</strong></td><td>Usar Kubernetes para rodar varias copias da aplicacao, com escalonamento automatico (HPA) conforme a carga.</td></tr>
+  <tr><td><strong>Automacao</strong></td><td>Terraform (criar a infraestrutura via codigo) e CI/CD (build, teste e deploy automaticos a cada push).</td></tr>
+</table>
+
+<h2>2. Conceitos-base (para quem esta estudando)</h2>
+<p>Antes do passo a passo, vale fixar o vocabulario. Cada termo aparece o tempo todo no projeto.</p>
+<table>
+  <tr><th>Termo</th><th>Explicacao simples</th></tr>
+  <tr><td>API REST</td><td>Um conjunto de enderecos HTTP (endpoints) que recebem e devolvem dados, normalmente em JSON.</td></tr>
+  <tr><td>Clean Architecture</td><td>Estilo de organizacao em que o "miolo" (regras de negocio) nao depende de banco, framework ou web. As dependencias apontam de fora para dentro.</td></tr>
+  <tr><td>DDD</td><td>Domain-Driven Design: modelar o codigo com os mesmos conceitos do negocio (Cliente, Veiculo, Ordem de Servico).</td></tr>
+  <tr><td>CQRS / MediatR</td><td>Separar comandos (que mudam dados) de consultas (que so leem). O MediatR e a biblioteca que encaminha cada requisicao ao seu "handler".</td></tr>
+  <tr><td>Container / Docker</td><td>Uma "caixa" que empacota a aplicacao com tudo que ela precisa para rodar, isolada do sistema operacional.</td></tr>
+  <tr><td>Kubernetes (K8s)</td><td>O "gerente" que roda, monitora e escala os containers em um cluster de maquinas.</td></tr>
+  <tr><td>HPA</td><td>Horizontal Pod Autoscaler: cria/remove copias da aplicacao automaticamente conforme o uso de CPU/memoria.</td></tr>
+  <tr><td>Terraform</td><td>Ferramenta que cria infraestrutura (cluster, banco) a partir de arquivos de codigo, de forma repetivel.</td></tr>
+  <tr><td>CI/CD</td><td>Integracao e Entrega Continua: pipelines que compilam, testam e publicam a aplicacao automaticamente.</td></tr>
+  <tr><td>Outbox</td><td>Padrao em que eventos a notificar sao gravados numa tabela na mesma transacao do dado, e enviados depois por um processo separado.</td></tr>
+</table>
+
+<h2>3. A arquitetura da aplicacao (Clean Architecture)</h2>
+<p>A solucao esta dividida em projetos .NET, cada um com uma responsabilidade. A regra de ouro: <strong>o dominio nao conhece ninguem; todos conhecem o dominio</strong>.</p>
+<table>
+  <tr><th>Projeto</th><th>Responsabilidade</th><th>Depende de</th></tr>
+  <tr><td><code>OficinaMecanica.Domain</code></td><td>Entidades, Value Objects, eventos e regras de negocio. O coracao do sistema.</td><td>Ninguem</td></tr>
+  <tr><td><code>OficinaMecanica.Application</code></td><td>Casos de uso (Commands/Queries), handlers, validacoes e interfaces de repositorio.</td><td>Domain</td></tr>
+  <tr><td><code>OficinaMecanica.Infrastructure</code></td><td>Implementacoes concretas: PostgreSQL via EF Core, Identity, envio de e-mail, repositorios.</td><td>Application, Domain</td></tr>
+  <tr><td><code>OficinaMecanica.API</code></td><td>Controllers HTTP, autenticacao JWT, tratamento de erros, Swagger.</td><td>Application, Infrastructure</td></tr>
+  <tr><td><code>OficinaMecanica.Worker</code></td><td>Processo separado que le o Outbox e envia os e-mails.</td><td>Application, Infrastructure</td></tr>
+  <tr><td><code>OficinaMecanica.Tests</code></td><td>Testes unitarios de Domain e Application.</td><td>-</td></tr>
+  <tr><td><code>OficinaMecanica.IntegrationTests</code></td><td>Testes de ponta a ponta (HTTP + PostgreSQL real via Testcontainers).</td><td>-</td></tr>
+</table>
+<p>A direcao das dependencias e sempre:</p>
+<pre>API  ---------\
+               ---> Application ---> Domain
+Infrastructure /</pre>
+<div class="box">
+  <strong>Por que isso importa?</strong> Como o dominio nao depende de banco nem de web, dá para testar as regras de negocio sem subir servidor nem banco, e trocar PostgreSQL por outra tecnologia sem mexer no miolo. Isso e o que torna o sistema "sustentavel" (requisito da fase).
+</div>
+
+<h2>4. Fluxo completo da Ordem de Servico</h2>
+<p>Toda a logica gira em torno da Ordem de Servico (OS). Ela e uma maquina de estados: so pode passar de um status para outro em uma ordem valida. A entidade <code>OrdemDeServico</code> protege essas regras.</p>
+<table>
+  <tr><th>Status</th><th>Significa</th><th>Como avanca</th></tr>
+  <tr><td>Recebida</td><td>OS acabou de ser aberta</td><td>Mecanico inicia o diagnostico</td></tr>
+  <tr><td>EmDiagnostico</td><td>Mecanico avaliando o veiculo</td><td>Registra o diagnostico e os itens</td></tr>
+  <tr><td>AguardandoAprovacao</td><td>Orcamento enviado ao cliente</td><td>Cliente aprova (direto ou via webhook externo)</td></tr>
+  <tr><td>EmExecucao</td><td>Servicos sendo executados; estoque reservado</td><td>Todos os servicos executados e OS finalizada</td></tr>
+  <tr><td>Finalizada</td><td>Servico concluido</td><td>Veiculo entregue ao cliente</td></tr>
+  <tr><td>Entregue</td><td>Encerramento do ciclo</td><td>-</td></tr>
+</table>
+<p class="pequeno">Existe ainda o status <code>Cancelada</code>, permitido a partir de estados nao-finais.</p>
+<div class="box">
+  <strong>Ponto-chave da arquitetura:</strong> a transicao de status esta no metodo privado <code>AlterarStatus</code> da entidade, que <strong>dispara um evento de dominio</strong> (<code>OrdemDeServicoStatusAlteradoEvent</code>) toda vez que o status muda. Esse evento e o gatilho da notificacao por e-mail (secao 6).
+</div>
+
+<h2>5. As APIs obrigatorias da Fase 2 (uma a uma)</h2>
+
+<h3>5.1. Abertura de OS</h3>
+<p><span class="tag">POST /api/ordens-de-servico/abertura</span></p>
+<p>Recebe em um unico request os dados de cliente, veiculo, servicos e pecas, e devolve o <strong>identificador unico</strong> da OS. O passo a passo interno:</p>
+<ol>
+  <li>O <code>AbrirOrdemDeServicoHandler</code> valida a estrutura do pedido.</li>
+  <li>Normaliza CPF, e-mail e placa (Value Objects garantem o formato).</li>
+  <li>Resolve ou cria o Cliente e o Veiculo.</li>
+  <li>Valida se os servicos e pecas existem no catalogo.</li>
+  <li>Gera o numero da OS por uma <em>sequence</em> atomica do PostgreSQL (<code>OS-0001</code>, <code>OS-0002</code>...), evitando colisao quando varias instancias abrem OS ao mesmo tempo.</li>
+  <li>Persiste tudo em uma transacao e retorna <code>201 Created</code> com o <code>id</code>.</li>
+</ol>
+
+<h3>5.2. Consulta de status</h3>
+<p><span class="tag">GET /api/ordens-de-servico/{id}/status</span></p>
+<p>Retorna o status atual da OS (Recebida, EmDiagnostico, AguardandoAprovacao, EmExecucao, Finalizada, Entregue) junto com as datas relevantes. Implementado pelo <code>ConsultarStatusOrdemDeServicoHandler</code>.</p>
+
+<h3>5.3. Aprovacao de orcamento (notificacao externa)</h3>
+<p><span class="tag">POST /api/webhooks/orcamentos/{id}/resposta</span></p>
+<p>Este e o endpoint que recebe a aprovacao ou recusa vinda de um sistema externo. Ele e cuidadosamente protegido:</p>
+<ul>
+  <li><strong>Assinatura HMAC</strong>: o chamador envia o header <code>X-Webhook-Signature</code>; o servidor recalcula a assinatura com um segredo compartilhado e compara. Sem isso, qualquer um poderia aprovar orcamentos.</li>
+  <li><strong>Tolerancia de tempo</strong>: rejeita requisicoes com timestamp muito antigo (evita "replay").</li>
+  <li><strong>Idempotencia</strong>: cada evento externo tem um id; se chegar duas vezes, a segunda e ignorada (retorna "repetido"). Isso evita reservar estoque em dobro.</li>
+</ul>
+<p>Ao aprovar, a OS vai para <code>EmExecucao</code> e o estoque das pecas e reservado em uma transacao serializable.</p>
+
+<h3>5.4. Listagem de OS (com a regra da fase)</h3>
+<p><span class="tag">GET /api/ordens-de-servico</span></p>
+<p>A listagem obedece exatamente a regra pedida no enunciado:</p>
+<ul>
+  <li><strong>Ordenacao por prioridade de status</strong>: Em Execucao &gt; Aguardando Aprovacao &gt; Em Diagnostico &gt; Recebida.</li>
+  <li><strong>Mais antigas primeiro</strong> dentro de cada status (por data de abertura).</li>
+  <li><strong>Exclusao logica</strong> das OS Finalizadas e Entregues: elas somem da listagem, mas <strong>continuam no banco</strong> (nada e deletado) e seguem acessiveis por <code>GET /api/ordens-de-servico/{id}</code>.</li>
+</ul>
+<p>Essa regra fica na consulta do repositorio (<code>GetAllAsync</code> em <code>OrdemDeServicoRepository</code>), usando um filtro <code>Where</code> que exclui os status finais e um <code>OrderBy</code> com a prioridade:</p>
+<pre>.Where(os =&gt; os.Status == EmExecucao
+          || os.Status == AguardandoAprovacao
+          || os.Status == EmDiagnostico
+          || os.Status == Recebida)
+.OrderByDescending(os =&gt; os.Status == EmExecucao)
+.ThenByDescending(os =&gt; os.Status == AguardandoAprovacao)
+.ThenByDescending(os =&gt; os.Status == EmDiagnostico)
+.ThenBy(os =&gt; os.DataAbertura)   // mais antigas primeiro</pre>
+
+<h3>5.5. Atualizacao de status via e-mail</h3>
+<p>Nao e um endpoint que voce chama: e automatico. Cada mudanca de status gera um e-mail para o cliente. O "como" esta na proxima secao.</p>
+
+<h2>6. Notificacao de status por e-mail (Outbox + Worker)</h2>
+<p>Enviar e-mail direto no meio de uma transacao e arriscado: se o e-mail falha, voce nao quer desfazer a mudanca de status; e se a transacao falha depois do e-mail, voce ja mandou uma notificacao errada. A solucao e o padrao <strong>Outbox transacional</strong>.</p>
+<h4>Passo a passo</h4>
+<ol>
+  <li>A OS muda de status e dispara um evento de dominio.</li>
+  <li>Esse evento e gravado como uma linha na tabela <code>OutboxMessages</code>, <strong>na mesma transacao</strong> do dado. Ou grava os dois, ou nenhum.</li>
+  <li>O <strong>Worker</strong> (processo separado) fica fazendo <em>polling</em> dessa tabela.</li>
+  <li>Para cada mensagem, o <code>OutboxProcessor</code> monta o e-mail (assunto e corpo conforme o status) e envia pelo <code>IEmailSender</code>.</li>
+  <li>Se o envio falha, ele tenta de novo com <em>backoff</em> exponencial, ate um limite de tentativas.</li>
+</ol>
+<div class="box alerta">
+  <strong>Importante sobre o envio real:</strong> existem dois provedores de e-mail. O padrao e <code>Log</code>, que apenas escreve no log (nao envia de verdade) &mdash; otimo para desenvolvimento. Para enviar e-mails reais, configure <code>Email:Provider = Resend</code> e <code>Email:ResendApiKey</code> (uma conta no servico Resend). O destinatario e sempre o e-mail do cliente cadastrado na OS.
+</div>
+<p>API e Worker <strong>nao conversam por HTTP</strong>: eles se comunicam apenas atraves do banco de dados (a tabela do outbox). Isso desacopla os dois e permite escalar cada um separadamente.</p>
+
+<h2>7. Conteinerizacao (Docker e docker-compose)</h2>
+<h3>7.1. Dockerfile</h3>
+<p>Cada processo (API e Worker) tem seu Dockerfile, usando <strong>multi-stage build</strong>:</p>
+<ul>
+  <li><strong>Estagio build</strong>: usa a imagem do SDK .NET 8, restaura pacotes, compila e publica.</li>
+  <li><strong>Estagio final</strong>: usa a imagem menor (apenas runtime), copia so o resultado publicado e roda como usuario nao-root (seguranca).</li>
+</ul>
+<p>O resultado e uma imagem enxuta e segura. A API expoe a porta 8080 e tem um <em>healthcheck</em> em <code>/health/ready</code>.</p>
+
+<h3>7.2. docker-compose.yml</h3>
+<p>Para desenvolvimento local, o <code>docker-compose.yml</code> sobe tres servicos de uma vez:</p>
+<table>
+  <tr><th>Servico</th><th>O que e</th></tr>
+  <tr><td><code>db</code></td><td>PostgreSQL 16 com volume persistente e healthcheck (<code>pg_isready</code>).</td></tr>
+  <tr><td><code>api</code></td><td>A API; so sobe depois que o banco esta saudavel. Aplica migrations e semeia o admin no startup.</td></tr>
+  <tr><td><code>worker</code></td><td>O processador do outbox; sobe depois de banco e API.</td></tr>
+</table>
+<p>As variaveis sensiveis (senhas, JWT) vem do arquivo <code>.env</code> (criado a partir de <code>.env.example</code>), nunca versionadas.</p>
+<pre>docker compose up --build
+# API:     http://localhost:8080
+# Swagger: http://localhost:8080/swagger</pre>
+
+<h2>8. Orquestracao com Kubernetes (manifestos)</h2>
+<p>Os manifestos ficam em <code>k8s/</code>, organizados com <strong>Kustomize</strong> (uma forma de ter uma "base" comum e "overlays" por ambiente). Cada arquivo YAML descreve um recurso do cluster.</p>
+<table>
+  <tr><th>Arquivo</th><th>Recurso</th><th>Para que serve</th></tr>
+  <tr><td><code>namespace.yaml</code></td><td>Namespace</td><td>Isola todos os recursos da oficina em um espaco proprio.</td></tr>
+  <tr><td><code>configmap.yaml</code></td><td>ConfigMap</td><td>Configuracoes nao sensiveis (ambiente, host do banco, intervalos do outbox).</td></tr>
+  <tr><td><code>secret.example.yaml</code></td><td>Secret (modelo)</td><td>Modelo para os segredos (senha do banco, JWT, webhook). O arquivo real nunca e versionado.</td></tr>
+  <tr><td><code>deployment.yaml</code></td><td>Deployment (API)</td><td>Roda a API com 2 replicas, probes de saude, init container que espera as migrations e seguranca reforcada (nao-root, filesystem somente-leitura).</td></tr>
+  <tr><td><code>worker-deployment.yaml</code></td><td>Deployment (Worker)</td><td>Roda o processador do outbox.</td></tr>
+  <tr><td><code>service.yaml</code></td><td>Service</td><td>Da um endereco interno estavel para a API dentro do cluster.</td></tr>
+  <tr><td><code>hpa.yaml</code></td><td>HorizontalPodAutoscaler</td><td>Escala a API de 2 a 6 replicas conforme CPU (70%) e memoria (80%). E a "escalabilidade dinamica" da fase.</td></tr>
+  <tr><td><code>pdb.yaml</code></td><td>PodDisruptionBudget</td><td>Garante um minimo de pods disponiveis durante manutencoes.</td></tr>
+  <tr><td><code>migration-job.yaml</code></td><td>Job</td><td>Aplica o schema do banco (migrations) e semeia o admin antes da API subir.</td></tr>
+  <tr><td><code>service-account.yaml</code></td><td>ServiceAccount</td><td>Identidade dos pods no cluster (com permissoes minimas).</td></tr>
+</table>
+<p>O overlay <code>k8s/overlays/local</code> acrescenta um PostgreSQL rodando dentro do cluster (StatefulSet) e aponta para imagens locais, para testes sem nuvem.</p>
+<pre>kubectl apply -k k8s/overlays/local
+kubectl -n oficina-mecanica get pods
+kubectl -n oficina-mecanica get hpa</pre>
+<div class="box">
+  <strong>Como o HPA demonstra escalabilidade:</strong> ao gerar carga nos endpoints, o uso de CPU sobe; o HPA percebe e cria novos pods automaticamente (ate 6). Quando a carga cai, ele remove os pods extras. E exatamente o cenario de "horario de pico" descrito no enunciado.
+</div>
+
+<h2>9. Infraestrutura como Codigo (Terraform)</h2>
+<p>Em vez de criar o cluster e o banco "na mao", o Terraform descreve tudo em arquivos na pasta <code>infra/</code>. Rodar <code>terraform apply</code> cria toda a infraestrutura; <code>terraform destroy</code> remove. E repetivel e versionavel.</p>
+<table>
+  <tr><th>Arquivo</th><th>Para que serve</th></tr>
+  <tr><td><code>versions.tf</code></td><td>Declara a versao do Terraform e os providers usados (kind, kubernetes, helm, null).</td></tr>
+  <tr><td><code>variables.tf</code></td><td>Define as "perguntas" configuraveis: nome do cluster, nome do banco, senhas, segredos. Com valores padrao e marcadas como sensiveis quando necessario.</td></tr>
+  <tr><td><code>main.tf</code></td><td>O coracao: cria o cluster Kubernetes (kind), o namespace, o banco PostgreSQL (via Helm) e o Secret da aplicacao. Opcionalmente aplica os manifestos.</td></tr>
+  <tr><td><code>outputs.tf</code></td><td>Mostra informacoes uteis apos o apply: nome do cluster, contexto kubectl, URL da API, endereco do banco.</td></tr>
+  <tr><td><code>terraform.tfvars.example</code></td><td>Modelo de valores reais. Voce copia para <code>terraform.tfvars</code> e preenche as senhas (esse arquivo nao e versionado).</td></tr>
+  <tr><td><code>infra/README.md</code></td><td>Documenta todos os recursos criados, as variaveis e o passo a passo (local e adaptacao para AWS EKS + RDS).</td></tr>
+</table>
+<h4>Recursos que o Terraform cria</h4>
+<ul>
+  <li><code>kind_cluster.oficina</code> &mdash; cluster Kubernetes local (1 control-plane + 1 worker), com a porta 30080 exposta no host.</li>
+  <li><code>kubernetes_namespace.oficina</code> &mdash; o namespace da aplicacao.</li>
+  <li><code>helm_release.postgres</code> &mdash; o banco PostgreSQL 16 dentro do cluster (pode ser desligado para usar banco gerenciado).</li>
+  <li><code>kubernetes_secret.oficina</code> &mdash; o Secret <code>oficina-secrets</code> com as senhas e segredos.</li>
+  <li><code>null_resource.kustomize</code> &mdash; opcionalmente aplica os manifestos K8s ao final.</li>
+</ul>
+<pre>cd infra
+cp terraform.tfvars.example terraform.tfvars   # preencha as senhas
+terraform init     # baixa os providers
+terraform plan      # mostra o que sera criado
+terraform apply     # cria o cluster + banco + secret</pre>
+<div class="box">
+  <strong>Local vs. nuvem:</strong> o padrao usa <code>kind</code> (Kubernetes rodando em Docker) por ser simples de demonstrar. O <code>infra/README.md</code> explica como trocar para AWS: o modulo EKS no lugar do kind, e o modulo RDS no lugar do PostgreSQL via Helm. O resto dos manifestos continua igual, porque sao agnosticos ao provedor.
+</div>
+
+<h2>10. CI/CD (GitHub Actions)</h2>
+<p>Sao dois pipelines, cada um com um papel. Ambos ficam em <code>.github/workflows/</code>.</p>
+<h3>10.1. CI &mdash; <code>ci.yml</code> (qualidade)</h3>
+<p>Dispara a cada push ou pull request na branch <code>main</code>. Tem tres trabalhos:</p>
+<ol>
+  <li><strong>Build + testes unitarios + cobertura</strong>: compila, roda os 141 testes unitarios e gera relatorio de cobertura.</li>
+  <li><strong>Testes de integracao</strong>: sobe um PostgreSQL real com Testcontainers e roda os testes de ponta a ponta.</li>
+  <li><strong>Scan de vulnerabilidades</strong>: checa se ha pacotes NuGet com falhas conhecidas.</li>
+</ol>
+<p>Existe tambem o <code>build.yml</code>, que faz a analise de qualidade no SonarQube Cloud.</p>
+<h3>10.2. CD &mdash; <code>cd.yml</code> (entrega)</h3>
+<p>Dispara em push na <code>main</code> ou em tags <code>v*</code>. E a esteira completa ate o deploy:</p>
+<ol>
+  <li><strong>Build e testes</strong> (gate): so segue se tudo passar.</li>
+  <li><strong>Build e push das imagens Docker</strong> (API e Worker) para o GitHub Container Registry (GHCR).</li>
+  <li><strong>Terraform apply</strong>: provisiona o cluster kind + PostgreSQL + Secret.</li>
+  <li><strong>Deploy</strong>: carrega as imagens no cluster, aplica os manifestos YAML e roda a Job de migration do banco.</li>
+  <li><strong>Validacao</strong>: espera o rollout da API terminar e exibe o estado dos pods e do HPA.</li>
+</ol>
+<pre>push na main
+  -> CI (ci.yml): build + testes + scan
+  -> CD (cd.yml): build/push imagens -> terraform apply
+                   -> kubectl apply -k -> migration -> rollout</pre>
+
+<h2>11. Testes automatizados</h2>
+<p>Os testes cobrem os fluxos criticos da OS, em dois niveis:</p>
+<table>
+  <tr><th>Suite</th><th>Projeto</th><th>O que cobre</th></tr>
+  <tr><td>Unitarios (141)</td><td><code>OficinaMecanica.Tests</code></td><td>Regras do dominio, Value Objects, validacoes e handlers (abertura de OS, consulta de status, listagem priorizada).</td></tr>
+  <tr><td>Integracao</td><td><code>OficinaMecanica.IntegrationTests</code></td><td>Fluxos HTTP ponta a ponta com PostgreSQL real: abertura completa, webhook de aprovacao (idempotente), consulta de status, e a listagem com ordenacao por prioridade + exclusao logica.</td></tr>
+</table>
+<p>Para rodar:</p>
+<pre>dotnet test src/OficinaMecanica.Tests/OficinaMecanica.Tests.csproj           # unitarios
+dotnet test src/OficinaMecanica.IntegrationTests/...                         # integracao (requer Docker)</pre>
+
+<h2>12. Como rodar tudo (roteiro pratico)</h2>
+<h4>Opcao A &mdash; Local, o mais rapido</h4>
+<pre>cp .env.example .env     # preencha JWT_SECRET, ADMIN_PASSWORD, POSTGRES_PASSWORD...
+docker compose up --build
+# abra http://localhost:8080/swagger</pre>
+<h4>Opcao B &mdash; Kubernetes</h4>
+<pre>cp k8s/base/secret.example.yaml k8s/base/secret.yaml   # preencha os segredos
+kubectl apply -k k8s/overlays/local
+kubectl -n oficina-mecanica rollout status deployment/oficina-api</pre>
+<h4>Opcao C &mdash; Terraform (infra do zero)</h4>
+<pre>cd infra
+cp terraform.tfvars.example terraform.tfvars    # preencha as senhas
+terraform init &amp;&amp; terraform apply</pre>
+<h4>Primeiros passos na API</h4>
+<ol>
+  <li>Faca login em <code>POST /api/auth/login</code> com o admin semeado.</li>
+  <li>Use o token no botao "Authorize" do Swagger.</li>
+  <li>Cadastre Cliente, Veiculo, Servico e Peca.</li>
+  <li>Abra uma OS em <code>POST /api/ordens-de-servico/abertura</code>.</li>
+  <li>Acompanhe o status em <code>GET /api/ordens-de-servico/{id}/status</code>.</li>
+  <li>Liste as OS em <code>GET /api/ordens-de-servico</code> e veja a ordenacao por prioridade.</li>
+</ol>
+
+<div class="box">
+  <strong>Resumo mental:</strong> o codigo (Clean Architecture) vira uma imagem (Docker), que roda em copias gerenciadas pelo Kubernetes (com HPA para escalar), sobre uma infraestrutura criada por Terraform, tudo publicado automaticamente pelo CI/CD. Cada peca resolve um dos objetivos da Fase 2.
+</div>
+
+</body>
+</html>

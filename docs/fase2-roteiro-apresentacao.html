@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Tech Challenge Fase 2 - Roteiro de Apresentacao</title>
+<style>
+  :root { --azul:#1a3b6e; --azul2:#2a5db0; --cinza:#555; --claro:#f4f6fa; --borda:#d6deeb; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: #1e1e1e; font-size: 12.5px; line-height: 1.55; margin: 0; }
+  h1 { color: var(--azul); font-size: 26px; margin: 0 0 4px; }
+  h2 { color: var(--azul); font-size: 18px; border-bottom: 3px solid var(--azul2); padding-bottom: 5px; margin-top: 26px; page-break-after: avoid; }
+  h3 { color: var(--azul2); font-size: 14px; margin-top: 16px; page-break-after: avoid; }
+  p { margin: 6px 0; }
+  code { background: #eef1f7; padding: 1px 5px; border-radius: 3px; font-family: Consolas, monospace; font-size: 11px; color: #9c2d41; }
+  pre { background: #1e2836; color: #e8ecf4; padding: 11px 13px; border-radius: 6px; font-family: Consolas, monospace; font-size: 10.5px; line-height: 1.4; page-break-inside: avoid; white-space: pre-wrap; }
+  table { border-collapse: collapse; width: 100%; margin: 9px 0; font-size: 11.5px; page-break-inside: avoid; }
+  th { background: var(--azul); color: #fff; text-align: left; padding: 6px 9px; }
+  td { border: 1px solid var(--borda); padding: 6px 9px; vertical-align: top; }
+  tr:nth-child(even) td { background: var(--claro); }
+  ul, ol { margin: 6px 0 6px 2px; padding-left: 20px; }
+  li { margin: 3px 0; }
+  .capa { text-align: center; padding-top: 170px; page-break-after: always; }
+  .capa .sub { color: var(--cinza); font-size: 15px; margin-top: 10px; }
+  .capa .meta { margin-top: 70px; font-size: 13px; color: var(--cinza); }
+  .fala { background: var(--claro); border-left: 4px solid var(--azul2); padding: 8px 13px; margin: 8px 0; border-radius: 0 5px 5px 0; }
+  .fala::before { content: "Fala sugerida: "; font-weight: bold; color: var(--azul2); }
+  .tempo { float: right; font-size: 11px; color: #fff; background: var(--azul2); padding: 1px 9px; border-radius: 10px; }
+  .bloco { page-break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<div class="capa">
+  <h1>Tech Challenge &mdash; Fase 2</h1>
+  <div class="sub">Roteiro de Apresentacao</div>
+  <div class="sub">Sistema de Gestao de Oficina Mecanica</div>
+  <div class="meta">Grupo Phantom &bull; FIAP 17SOAT<br>Duracao sugerida do video: ate 15 minutos</div>
+</div>
+
+<h2>Estrutura da apresentacao</h2>
+<table>
+  <tr><th>#</th><th>Bloco</th><th>Tempo</th></tr>
+  <tr><td>1</td><td>Abertura e contexto</td><td>~1 min</td></tr>
+  <tr><td>2</td><td>Arquitetura da aplicacao</td><td>~2 min</td></tr>
+  <tr><td>3</td><td>Demonstracao das APIs</td><td>~3 min</td></tr>
+  <tr><td>4</td><td>Docker e docker-compose</td><td>~1,5 min</td></tr>
+  <tr><td>5</td><td>Kubernetes e escalabilidade (HPA)</td><td>~2,5 min</td></tr>
+  <tr><td>6</td><td>Terraform (infra como codigo)</td><td>~2 min</td></tr>
+  <tr><td>7</td><td>CI/CD</td><td>~2 min</td></tr>
+  <tr><td>8</td><td>Encerramento</td><td>~1 min</td></tr>
+</table>
+
+<h2>1. Abertura e contexto <span class="tempo">~1 min</span></h2>
+<ul>
+  <li>Quem somos e qual o projeto: sistema de gestao de oficina mecanica.</li>
+  <li>O que a Fase 2 pede: evoluir a aplicacao da Fase 1 com qualidade, resiliencia e escalabilidade.</li>
+</ul>
+<div class="fala">Na Fase 1 construimos a API da oficina. Na Fase 2 evoluimos ela com Clean Architecture, testes, Docker, Kubernetes com escalonamento automatico, Terraform e um pipeline de CI/CD completo.</div>
+
+<h2>2. Arquitetura da aplicacao <span class="tempo">~2 min</span></h2>
+<p>Mostrar o diagrama de camadas e explicar a separacao.</p>
+<table>
+  <tr><th>Camada</th><th>Papel</th></tr>
+  <tr><td>Domain</td><td>Regras de negocio e a maquina de estados da Ordem de Servico.</td></tr>
+  <tr><td>Application</td><td>Casos de uso (Commands/Queries) com MediatR.</td></tr>
+  <tr><td>Infrastructure</td><td>PostgreSQL (EF Core), Identity, e-mail.</td></tr>
+  <tr><td>API</td><td>Endpoints REST, JWT, Swagger.</td></tr>
+  <tr><td>Worker</td><td>Processa o Outbox e envia e-mails de mudanca de status.</td></tr>
+</table>
+<div class="fala">As dependencias sempre apontam para o dominio. Isso deixa o nucleo independente de banco e de web, o que facilita testar e evoluir.</div>
+
+<h2>3. Demonstracao das APIs <span class="tempo">~3 min</span></h2>
+<p>Abrir o Swagger (<code>http://localhost:8080/swagger</code>) e mostrar, nesta ordem:</p>
+<ol>
+  <li><strong>Login</strong> e autorizacao com o token.</li>
+  <li><strong>Abrir OS</strong> &mdash; <code>POST /api/ordens-de-servico/abertura</code>, mostrando o id retornado.</li>
+  <li><strong>Consultar status</strong> &mdash; <code>GET /api/ordens-de-servico/{id}/status</code>.</li>
+  <li><strong>Aprovar orcamento</strong> &mdash; webhook externo <code>POST /api/webhooks/orcamentos/{id}/resposta</code>.</li>
+  <li><strong>Listar OS</strong> &mdash; <code>GET /api/ordens-de-servico</code>, destacando a ordenacao por prioridade e que as finalizadas/entregues somem (exclusao logica).</li>
+  <li><strong>E-mail</strong> &mdash; mostrar no log do Worker a notificacao de mudanca de status.</li>
+</ol>
+<div class="fala">Repare que a listagem ja vem ordenada por prioridade, Em Execucao primeiro, e as ordens finalizadas e entregues nao aparecem, mas continuam no banco.</div>
+
+<h2>4. Docker e docker-compose <span class="tempo">~1,5 min</span></h2>
+<p>Mostrar o <code>Dockerfile</code> (multi-stage) e o <code>docker-compose.yml</code>.</p>
+<pre>docker compose up --build</pre>
+<ul>
+  <li>Tres servicos: <code>api</code>, <code>worker</code> e <code>db</code> (PostgreSQL 16).</li>
+  <li>Imagem enxuta, roda como usuario nao-root.</li>
+  <li>Segredos vem do <code>.env</code>.</li>
+</ul>
+<div class="fala">Com um unico comando subimos a API, o worker e o banco, tudo conteinerizado.</div>
+
+<h2>5. Kubernetes e escalabilidade <span class="tempo">~2,5 min</span></h2>
+<p>Mostrar a pasta <code>k8s/</code> e citar os principais manifestos:</p>
+<table>
+  <tr><th>Manifesto</th><th>Para que serve</th></tr>
+  <tr><td>Deployment</td><td>Roda a API (2 replicas) e o Worker.</td></tr>
+  <tr><td>Service</td><td>Endereco interno estavel da API.</td></tr>
+  <tr><td>ConfigMap / Secret</td><td>Configuracoes e segredos (JWT, webhook, senha do banco).</td></tr>
+  <tr><td>HPA</td><td>Escala a API de 2 a 6 replicas conforme CPU/memoria.</td></tr>
+  <tr><td>Job de migration</td><td>Prepara o banco antes da API subir.</td></tr>
+</table>
+<pre>kubectl apply -k k8s/overlays/local
+kubectl -n oficina-mecanica get hpa -w</pre>
+<div class="fala">Para demonstrar a escalabilidade, geramos carga na API; o HPA percebe o aumento de CPU e cria novos pods automaticamente. E o cenario de horario de pico do enunciado.</div>
+
+<h2>6. Terraform (infra como codigo) <span class="tempo">~2 min</span></h2>
+<p>Mostrar a pasta <code>infra/</code> e explicar os arquivos:</p>
+<table>
+  <tr><th>Arquivo</th><th>Para que serve</th></tr>
+  <tr><td><code>versions.tf</code></td><td>Versoes do Terraform e dos providers.</td></tr>
+  <tr><td><code>variables.tf</code></td><td>Variaveis configuraveis (cluster, banco, senhas).</td></tr>
+  <tr><td><code>main.tf</code></td><td>Cria cluster Kubernetes, namespace, banco e Secret.</td></tr>
+  <tr><td><code>outputs.tf</code></td><td>Mostra URL da API, contexto e endereco do banco.</td></tr>
+</table>
+<pre>cd infra
+terraform init
+terraform apply</pre>
+<div class="fala">Com o Terraform, a infraestrutura inteira, cluster e banco, nasce de codigo. E repetivel e documentada; nada criado na mao.</div>
+
+<h2>7. CI/CD <span class="tempo">~2 min</span></h2>
+<p>Mostrar <code>.github/workflows/</code>: <code>ci.yml</code> (qualidade) e <code>cd.yml</code> (entrega).</p>
+<ul>
+  <li><strong>CI</strong>: build, testes unitarios e de integracao, cobertura e scan de vulnerabilidades.</li>
+  <li><strong>CD</strong>: build e push das imagens no GHCR, <code>terraform apply</code>, aplicacao dos manifestos, migration e validacao do rollout.</li>
+</ul>
+<pre>push na main
+  -> CI: build + testes
+  -> CD: imagens -> terraform -> k8s apply -> migration -> rollout</pre>
+<div class="fala">A cada push na main o pipeline compila, testa, publica a imagem e faz o deploy no cluster automaticamente.</div>
+
+<h2>8. Encerramento <span class="tempo">~1 min</span></h2>
+<ul>
+  <li>Recapitular: codigo limpo e testado, conteinerizado, orquestrado com escalabilidade, infra via Terraform e deploy automatizado.</li>
+  <li>Mostrar o repositorio e agradecer.</li>
+</ul>
+<div class="fala">Entregamos todos os requisitos da Fase 2: qualidade de codigo, conteinerizacao, Kubernetes com HPA, Terraform e CI/CD. Obrigado!</div>
+
+<h2>Checklist rapido para a gravacao</h2>
+<ul>
+  <li>[ ] Deploy da aplicacao (local ou k8s) funcionando.</li>
+  <li>[ ] Execucao do CI/CD (mostrar uma run no GitHub Actions).</li>
+  <li>[ ] Consumo das APIs pelo Swagger/Postman.</li>
+  <li>[ ] Escalabilidade automatica (gerar carga e mostrar o HPA criando pods).</li>
+  <li>[ ] Video de ate 15 minutos, publicado no YouTube/Vimeo.</li>
+</ul>
+
+</body>
+</html>

@@ -4,6 +4,107 @@
 
 Backend de gestao de oficina mecanica desenvolvido com .NET 8, Clean Architecture, DDD, CQRS, MediatR, Entity Framework Core e PostgreSQL para o Tech Challenge da FIAP.
 
+---
+
+## Fase 2 - Qualidade, resiliencia e escalabilidade
+
+### Objetivos desta fase
+
+A Fase 2 evolui a aplicacao da Fase 1 para garantir **qualidade, resiliencia e escalabilidade**, incorporando praticas modernas de infraestrutura e automacao:
+
+- **Clean Architecture** com separacao de camadas e dependencias apontando para o dominio;
+- **Testes automatizados** (unitarios e de integracao) cobrindo os fluxos criticos da Ordem de Servico;
+- **APIs de Ordem de Servico** completas: abertura, consulta de status, aprovacao externa de orcamento, listagem priorizada e notificacao de status por e-mail;
+- **Conteinerizacao** com Docker e Docker Compose;
+- **Orquestracao** com Kubernetes (Deployments, Services, ConfigMaps, Secrets e HPA);
+- **Infraestrutura como Codigo** com Terraform (cluster Kubernetes + banco de dados);
+- **CI/CD** com GitHub Actions (build, testes, build/push de imagens, provisionamento e deploy).
+
+### APIs obrigatorias da Fase 2
+
+| Requisito | Endpoint | Observacao |
+|-----------|----------|------------|
+| Abertura de OS | `POST /api/ordens-de-servico/abertura` | Recebe cliente, veiculo, servicos e pecas; retorna o `id` unico da OS |
+| Consulta de status | `GET /api/ordens-de-servico/{id}/status` | Retorna o status atual (Recebida, Em Diagnostico, Aguardando Aprovacao, Em Execucao, Finalizada, Entregue) |
+| Aprovacao de orcamento (externa) | `POST /api/webhooks/orcamentos/{id}/resposta` | Webhook idempotente com assinatura HMAC (`X-Webhook-Signature`) para aprovacao/recusa |
+| Listagem de OS | `GET /api/ordens-de-servico` | Ordena por prioridade **Em Execucao > Aguardando Aprovacao > Em Diagnostico > Recebida**, mais antigas primeiro, e exclui **logicamente** OS Finalizadas/Entregues/Canceladas |
+| Atualizacao de status via e-mail | (automatico) | Cada mudanca de status publica um evento de dominio gravado no outbox transacional; o Worker envia e-mail ao cliente |
+
+> A exclusao das OS Finalizadas/Entregues e **logica** (filtro na consulta), nunca fisica: os registros permanecem no banco e continuam acessiveis por `GET /api/ordens-de-servico/{id}`.
+
+### Arquitetura da solucao
+
+**Componentes da aplicacao**
+
+```text
+                       +---------------------------+
+   Cliente / Postman   |   API (OficinaMecanica)   |   ASP.NET Core 8
+   ----------------->  |  Controllers + MediatR    |   Clean Architecture
+                       |  Application -> Domain     |
+                       +------------+--------------+
+                                    |
+                 escreve OutboxMessages (mesma transacao)
+                                    v
+      +----------------+   +--------+--------+   +------------------------+
+      |  PostgreSQL 16 |<--|  Worker (Outbox)|-->|  Provedor de e-mail    |
+      |  (EF Core)     |   |  BackgroundSvc   |   |  (Log / Resend)        |
+      +----------------+   +-----------------+   +------------------------+
+```
+
+- **API**: expoe os endpoints REST, autentica via JWT, aplica regras pela camada de dominio e persiste no PostgreSQL. Eventos de dominio sao gravados na tabela `OutboxMessages` dentro da mesma transacao (outbox transacional).
+- **Worker**: processo separado (`OficinaMecanica.Worker`) que faz polling do outbox e envia as notificacoes de e-mail. API e Worker se comunicam apenas pelo banco.
+- **PostgreSQL 16**: banco relacional acessado via EF Core (Npgsql).
+
+**Infraestrutura provisionada**
+
+```text
+                 Terraform (infra/)
+                        |
+        +---------------+----------------+
+        |                                |
+  kind_cluster (K8s)            helm_release (PostgreSQL)
+        |                                |
+  Namespace oficina-mecanica             |
+        |                                |
+  +-----+----------------------------+   |
+  | Deployment oficina-api (2+ pods) |   |
+  | Deployment oficina-worker        |   |
+  | Service (NodePort :30080)        |   |
+  | ConfigMap + Secret               |<--+ (oficina-secrets via Terraform)
+  | HPA (CPU 70% / Mem 80%, 2..6)    |
+  | Job de migration do banco        |
+  | PodDisruptionBudget              |
+  +----------------------------------+
+```
+
+**Fluxo de deploy (CI/CD)**
+
+```text
+push na branch main
+   -> CI (ci.yml): build + testes unitarios + integracao (Testcontainers) + scan
+   -> CD (cd.yml):
+        1. build + testes (gate)
+        2. build e push das imagens Docker (API e Worker) no GHCR
+        3. terraform apply  -> provisiona cluster kind + PostgreSQL + Secret
+        4. kubectl apply -k -> aplica manifestos, Job de migration e Deployments
+        5. rollout status   -> valida o deploy e exibe HPA/pods
+```
+
+### Como executar
+
+Tres formas, da mais simples a mais completa:
+
+1. **Local com Docker Compose** - secao [Execucao com Docker](#execucao-com-docker).
+2. **Deploy em Kubernetes** - secao [Deploy em Kubernetes](#deploy-em-kubernetes).
+3. **Provisionamento com Terraform** - secao [Provisionamento da infraestrutura com Terraform](#provisionamento-da-infraestrutura-com-terraform).
+
+### Entregaveis
+
+- **Colecao das APIs**: Swagger/OpenAPI em `http://localhost:8080/swagger` (JSON em `http://localhost:8080/swagger/v1/swagger.json`). Exemplos de requisicao/resposta em [docs/exemplos-api.md](docs/exemplos-api.md).
+- **Video demonstrativo**: _adicionar aqui o link do YouTube/Vimeo (publico ou nao listado, ate 15 min)_.
+
+---
+
 ## Funcionalidades
 
 - clientes e veiculos;
@@ -78,6 +179,62 @@ dotnet run --project src/OficinaMecanica.API/OficinaMecanica.API.csproj
 ```
 
 Sem Docker, instale o PostgreSQL localmente e configure `POSTGRES_DB`, `POSTGRES_USER` e `POSTGRES_PASSWORD` no `.env`, ou forneca `ConnectionStrings__DefaultConnection` diretamente no ambiente. As migrations sao aplicadas automaticamente.
+
+## Deploy em Kubernetes
+
+Os manifestos ficam em `k8s/`, organizados com [Kustomize](https://kustomize.io/):
+
+```text
+k8s/
+  base/            # Deployment (API), Worker, Service, ConfigMap, Secret (exemplo),
+                   # HPA, PodDisruptionBudget, Job de migration, ServiceAccount, Namespace
+  overlays/local/  # Cluster local: PostgreSQL (StatefulSet) + imagens locais
+```
+
+Pre-requisitos: um cluster Kubernetes (ex.: `kind`, `minikube` ou gerenciado), `kubectl` e `kustomize` (ja embutido no `kubectl`).
+
+1. Crie o Secret real a partir do exemplo (nunca versione o arquivo com valores reais):
+
+   ```bash
+   cp k8s/base/secret.example.yaml k8s/base/secret.yaml
+   # edite k8s/base/secret.yaml com segredos fortes
+   ```
+
+2. Aplique o overlay local (sobe tambem um PostgreSQL no cluster):
+
+   ```bash
+   kubectl apply -k k8s/overlays/local
+   ```
+
+3. Acompanhe o rollout e verifique o autoscaler:
+
+   ```bash
+   kubectl -n oficina-mecanica rollout status deployment/oficina-api
+   kubectl -n oficina-mecanica get hpa
+   kubectl -n oficina-mecanica get pods
+   ```
+
+O **Horizontal Pod Autoscaler** (`k8s/base/hpa.yaml`) escala a API de **2 a 6 replicas** conforme o consumo de CPU (70%) e memoria (80%). Uma **Job de migration** aplica o schema do banco e semeia o administrador antes dos pods da API subirem (init container aguarda as tabelas existirem).
+
+Para simular escalabilidade no video, gere carga nos endpoints e observe o HPA criar replicas:
+
+```bash
+kubectl -n oficina-mecanica get hpa -w
+```
+
+## Provisionamento da infraestrutura com Terraform
+
+Os scripts Terraform ficam em `infra/` e provisionam **o cluster Kubernetes** (local via `kind`) e **o banco de dados** (PostgreSQL via Helm), alem do Secret da aplicacao.
+
+```bash
+cd infra
+cp terraform.tfvars.example terraform.tfvars   # preencha os segredos
+terraform init
+terraform plan
+terraform apply
+```
+
+Com `apply_k8s_manifests = true`, o Terraform tambem aplica os manifestos Kustomize. A API fica exposta em `http://localhost:30080` (NodePort). Os recursos criados, as variaveis e o passo a passo para nuvem (AWS EKS + RDS) estao documentados em [infra/README.md](infra/README.md).
 
 ## Primeiro acesso
 
@@ -164,7 +321,7 @@ A solucao possui duas suites:
 
 | Suite | Projeto | Quantidade | Escopo |
 |-------|---------|-----------:|--------|
-| Unitarios | `OficinaMecanica.Tests` | 121 | Domain, Value Objects, aggregates, validators e Application |
+| Unitarios | `OficinaMecanica.Tests` | 141 | Domain, Value Objects, aggregates, validators e Application |
 | Integracao | `OficinaMecanica.IntegrationTests` | 9 | HTTP, JWT, MediatR, Identity, EF Core e PostgreSQL 16 real |
 
 Executar os testes unitarios:
@@ -187,7 +344,7 @@ dotnet test src/OficinaMecanica.slnx
 
 Resultado desta etapa: **121 testes unitarios aprovados e nenhuma falha**. Os 7 testes de integracao da linha de base continuam validados; os 2 novos cenarios de abertura completa estao compilando e aguardam execucao local com o Docker Engine ativo. A camada Domain possui **82,03% de cobertura de linhas** na ultima medicao OpenCover; os percentuais por classe e as instrucoes para gerar o relatorio estao em [Testes e cobertura](docs/relatorio-testes-cobertura.md).
 
-O pipeline do GitHub Actions executa build Release, testes unitarios com cobertura, testes de integracao com Testcontainers e scan de dependencias a cada push ou pull request para `main`.
+O pipeline de **CI** (`.github/workflows/ci.yml`) executa build Release, testes unitarios com cobertura, testes de integracao com Testcontainers e scan de dependencias a cada push ou pull request para `main`. O pipeline de **CD** (`.github/workflows/cd.yml`) builda e publica as imagens Docker (API e Worker) no GHCR, provisiona o cluster e o banco com Terraform e aplica os manifestos Kubernetes com a Job de migration, validando o rollout.
 
 ## Seguranca e qualidade
 
@@ -222,9 +379,13 @@ Os detalhes, o escopo das metricas e os achados corrigidos estao no [Relatorio d
 
 ## Execucao local e deploy
 
-O ambiente entregue e local: Docker Compose inicia API e PostgreSQL no computador do desenvolvedor. O projeto ainda nao declara uma URL publica nem um provedor de hospedagem.
+A aplicacao roda em tres ambientes:
 
-Em um deploy, `JWT_SECRET`, credenciais administrativas e connection string devem ser fornecidos pelo gerenciador de secrets da plataforma. O banco deve usar volume persistente ou PostgreSQL gerenciado, com backup e acesso de rede restrito. As imagens e comandos atuais permitem evoluir para esse ambiente sem alterar as camadas internas da aplicacao.
+- **Local**: Docker Compose (API + Worker + PostgreSQL) no computador do desenvolvedor;
+- **Kubernetes**: manifestos Kustomize em `k8s/`, com HPA, Secrets e Job de migration;
+- **Infraestrutura como Codigo**: Terraform em `infra/` provisiona o cluster e o banco.
+
+Em qualquer ambiente, `JWT_SECRET`, credenciais administrativas, segredo do webhook e connection string vem de Secret (Kubernetes/Terraform) ou de `.env` (local), nunca versionados. O banco usa volume persistente (StatefulSet/PVC) ou PostgreSQL gerenciado, com acesso de rede restrito. O pipeline de CI/CD automatiza build, testes, publicacao das imagens e deploy.
 
 ## Documentacao
 
@@ -239,6 +400,7 @@ Em um deploy, `JWT_SECRET`, credenciais administrativas e connection string deve
 | [Testes e cobertura](docs/relatorio-testes-cobertura.md) | Organizacao, execucao e cobertura dos dominios criticos |
 | [Relatorio de vulnerabilidades](docs/relatorio-vulnerabilidades.md) | Scan de dependencias, achados e correcoes |
 | [Qualidade com Sonar](docs/qualidade-sonar.md) | Configuracao, metricas obtidas, linha de base e correcoes do SonarQube Cloud |
+| [Infraestrutura (Terraform)](infra/README.md) | Recursos provisionados, variaveis e passo a passo (local e AWS EKS) |
 
 ## Grupo
 

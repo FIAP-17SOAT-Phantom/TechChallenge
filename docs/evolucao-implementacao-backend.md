@@ -1323,3 +1323,20 @@ Validacoes executadas nesta etapa:
 - 121 testes unitarios aprovados, incluindo 25 novos cenarios do Topico 1;
 - 2 novos cenarios de integracao compilados para abertura e conflito de placa;
 - execucao dos testes de integracao pendente apenas porque o Docker Engine estava desligado no ambiente local.
+
+---
+
+## Bloco 29 - Correcao do fail-fast no SonarQube Cloud
+
+Depois da implementacao da abertura completa da OS, o workflow executou build e 121 testes com sucesso, mas o `begin` do SonarScanner foi rejeitado pelo SonarQube Cloud com falha de autenticacao. O erro posterior sobre `SonarQubeAnalysisConfig.xml` era apenas uma consequencia: como todos os comandos estavam no mesmo bloco PowerShell, o build e o `end` continuaram mesmo depois do `begin` retornar codigo 1.
+
+O workflow `.github/workflows/build.yml` foi reorganizado para:
+
+- validar se `SONAR_TOKEN` existe e nao possui espacos externos;
+- executar `begin`, build, testes e `end` em etapas independentes;
+- propagar imediatamente o codigo de erro de cada executavel;
+- declarar explicitamente `https://sonarcloud.io` como servidor;
+- limitar as permissoes do workflow a leitura do repositorio;
+- ignorar analise em PR de fork e Dependabot, onde o GitHub nao disponibiliza repository secrets.
+
+A alteracao remove o erro em cascata, mas nao pode substituir uma credencial externa. Para concluir a nova analise, e necessario gerar um token valido no SonarQube Cloud, atualizar o Repository secret `SONAR_TOKEN` no GitHub sem aspas e reexecutar o workflow.

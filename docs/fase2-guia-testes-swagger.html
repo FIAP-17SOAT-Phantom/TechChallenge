@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Tech Challenge Fase 2 - Guia de Testes e Comandos</title>
+<style>
+  :root { --azul:#1a3b6e; --azul2:#2a5db0; --cinza:#555; --claro:#f4f6fa; --borda:#d6deeb; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: #1e1e1e; font-size: 12px; line-height: 1.5; margin: 0; }
+  h1 { color: var(--azul); font-size: 25px; margin: 0 0 4px; }
+  h2 { color: var(--azul); font-size: 18px; border-bottom: 3px solid var(--azul2); padding-bottom: 5px; margin-top: 28px; page-break-after: avoid; }
+  h3 { color: var(--azul2); font-size: 14px; margin-top: 18px; page-break-after: avoid; }
+  p { margin: 6px 0; }
+  code { background: #eef1f7; padding: 1px 5px; border-radius: 3px; font-family: Consolas, monospace; font-size: 11px; color: #9c2d41; }
+  pre { background: #1e2836; color: #e8ecf4; padding: 11px 13px; border-radius: 6px; font-family: Consolas, monospace; font-size: 10.5px; line-height: 1.4; page-break-inside: avoid; white-space: pre-wrap; word-break: break-word; }
+  pre code { background: none; color: inherit; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 9px 0; font-size: 11px; page-break-inside: avoid; }
+  th { background: var(--azul); color: #fff; text-align: left; padding: 6px 9px; }
+  td { border: 1px solid var(--borda); padding: 6px 9px; vertical-align: top; }
+  tr:nth-child(even) td { background: var(--claro); }
+  ul, ol { margin: 6px 0 6px 2px; padding-left: 20px; }
+  li { margin: 3px 0; }
+  .capa { text-align: center; padding-top: 160px; page-break-after: always; }
+  .capa .sub { color: var(--cinza); font-size: 15px; margin-top: 10px; }
+  .capa .meta { margin-top: 70px; font-size: 13px; color: var(--cinza); }
+  .box { background: var(--claro); border-left: 4px solid var(--azul2); padding: 9px 13px; margin: 10px 0; border-radius: 0 5px 5px 0; page-break-inside: avoid; }
+  .box.alerta { border-left-color: #c9892f; background: #fdf6ec; }
+  .metodo { display:inline-block; font-size:10px; font-weight:bold; color:#fff; padding:1px 7px; border-radius:3px; }
+  .post{background:#2a7d46;} .get{background:#2a5db0;} .patch{background:#9c5a1d;}
+</style>
+</head>
+<body>
+
+<div class="capa">
+  <h1>Tech Challenge &mdash; Fase 2</h1>
+  <div class="sub">Guia de Testes, Payloads e Comandos</div>
+  <div class="sub">Oficina Mecanica API</div>
+  <div class="meta">Grupo Phantom &bull; FIAP 17SOAT</div>
+</div>
+
+<h2>0. Como acessar o ambiente</h2>
+<div class="box alerta">
+  <strong>Importante sobre "producao":</strong> este projeto <strong>nao tem um ambiente de producao publicado</strong> (nao ha URL publica em nuvem). O "acesso" se da por um dos tres ambientes abaixo, que voce mesmo sobe. Para a entrega da fase, isso e esperado &mdash; a demonstracao e feita localmente ou em um cluster Kubernetes local.
+</div>
+<table>
+  <tr><th>Ambiente</th><th>Como subir</th><th>URL base</th></tr>
+  <tr><td>Local (Docker Compose)</td><td><code>docker compose up --build</code></td><td><code>http://localhost:8080</code></td></tr>
+  <tr><td>Kubernetes local (kind)</td><td><code>kubectl apply -k k8s/overlays/local</code></td><td><code>http://localhost:30080</code></td></tr>
+  <tr><td>Terraform (infra do zero)</td><td><code>cd infra &amp;&amp; terraform apply</code></td><td><code>http://localhost:30080</code></td></tr>
+</table>
+<p>Swagger (interface de testes): <code>&lt;URL base&gt;/swagger</code> &mdash; ex.: <code>http://localhost:8080/swagger</code></p>
+
+<h3>Subir o ambiente local do zero</h3>
+<pre># 1. Configurar variaveis de ambiente
+cp .env.example .env
+# edite o .env e defina, no minimo:
+#   JWT_SECRET=um-segredo-com-no-minimo-32-caracteres-aqui
+#   ADMIN_PASSWORD=Admin@123456
+#   POSTGRES_PASSWORD=uma-senha-forte
+#   WEBHOOK_ORCAMENTO_SECRET=um-segredo-webhook-com-no-minimo-32-caracteres
+
+# 2. Subir API + Worker + PostgreSQL
+docker compose up --build
+
+# 3. Abrir o Swagger
+#   http://localhost:8080/swagger</pre>
+
+<h2>1. Login e autorizacao no Swagger</h2>
+<p><span class="metodo post">POST</span> <code>/api/auth/login</code></p>
+<p>Cole no corpo (ajuste a senha para a que voce definiu em <code>ADMIN_PASSWORD</code>):</p>
+<pre>{
+  "email": "admin@oficina.local",
+  "senha": "Admin@123456"
+}</pre>
+<p>A resposta traz o <code>token</code>. No Swagger, clique em <strong>Authorize</strong> (cadeado no topo) e cole <strong>apenas o token</strong> (sem escrever "Bearer"). A partir dai, todas as rotas protegidas ja vao autenticadas.</p>
+<div class="box">O e-mail do admin padrao e <code>admin@oficina.local</code> no Compose e <code>admin@oficina.com</code> em alguns ambientes de teste. Use o que estiver configurado no seu <code>.env</code> / Secret.</div>
+
+<h2>2. Cadastros basicos (pre-requisitos da OS)</h2>
+<h3>2.1. Criar cliente</h3>
+<p><span class="metodo post">POST</span> <code>/api/clientes</code> &mdash; use <strong>seu e-mail aqui</strong> para receber as notificacoes da OS.</p>
+<pre>{
+  "nome": "Bruno Teste",
+  "cpf": "52998224725",
+  "telefone": "11999999999",
+  "email": "bruno.03fr@gmail.com"
+}</pre>
+<p>Guarde o <code>id</code> retornado (ex.: <code>clienteId</code>).</p>
+
+<h3>2.2. Criar veiculo</h3>
+<p><span class="metodo post">POST</span> <code>/api/veiculos</code> (troque <code>clienteId</code> pelo id do passo anterior)</p>
+<pre>{
+  "placa": "ABC1D23",
+  "marca": "Honda",
+  "modelo": "Civic",
+  "ano": 2022,
+  "clienteId": "COLE_AQUI_O_CLIENTE_ID"
+}</pre>
+
+<h3>2.3. Criar servico</h3>
+<p><span class="metodo post">POST</span> <code>/api/servicos</code> &mdash; guarde o <code>id</code> (sera o <code>servicoId</code>).</p>
+<pre>{
+  "nome": "Troca de oleo",
+  "descricao": "Troca de oleo e filtro",
+  "precoBase": 150.00,
+  "tempoEstimadoMinutos": 45
+}</pre>
+
+<h3>2.4. Criar peca</h3>
+<p><span class="metodo post">POST</span> <code>/api/pecas</code> &mdash; guarde o <code>id</code> (sera o <code>pecaId</code>).</p>
+<pre>{
+  "nome": "Filtro de oleo",
+  "codigo": "FLT-001",
+  "descricao": "Filtro compativel",
+  "precoUnitario": 45.90,
+  "quantidadeEmEstoque": 10,
+  "quantidadeMinima": 3
+}</pre>
+
+<h2>3. Abertura de OS (API obrigatoria 1)</h2>
+<p><span class="metodo post">POST</span> <code>/api/ordens-de-servico/abertura</code></p>
+<p>Este endpoint cria cliente e veiculo se ainda nao existirem (localiza por CPF e placa). Troque os <code>servicoId</code>/<code>pecaId</code> pelos ids dos cadastros. Para receber e-mail, use seu e-mail no bloco <code>cliente</code>.</p>
+<pre>{
+  "cliente": {
+    "nome": "Bruno Teste",
+    "cpf": "52998224725",
+    "telefone": "11999999999",
+    "email": "bruno.03fr@gmail.com"
+  },
+  "veiculo": {
+    "placa": "BRA2E19",
+    "marca": "Honda",
+    "modelo": "Civic",
+    "ano": 2022
+  },
+  "servicos": [
+    {
+      "servicoId": "COLE_AQUI_O_SERVICO_ID",
+      "quantidade": 1,
+      "observacao": "Revisao solicitada pelo cliente"
+    }
+  ],
+  "pecas": [
+    {
+      "pecaId": "COLE_AQUI_A_PECA_ID",
+      "quantidade": 1,
+      "observacao": "Peca informada na abertura"
+    }
+  ]
+}</pre>
+<p>Resposta <code>201</code>: <code>{ "id": "...", "numero": "OS-0001" }</code>. Guarde o <code>id</code> (sera o <code>ordemDeServicoId</code>).</p>
+
+<h2>4. Consulta de status (API obrigatoria 2)</h2>
+<p><span class="metodo get">GET</span> <code>/api/ordens-de-servico/{ordemDeServicoId}/status</code></p>
+<p>Nao tem corpo. So cole o id da OS no campo de path do Swagger e execute. Retorna o status atual e as datas.</p>
+
+<h2>5. Diagnostico e orcamento (preparando a aprovacao)</h2>
+<h3>5.1. Iniciar diagnostico</h3>
+<p><span class="metodo patch">PATCH</span> <code>/api/ordens-de-servico/{ordemDeServicoId}/iniciar-diagnostico</code></p>
+<pre>{
+  "mecanicoId": "33333333-3333-3333-3333-333333333333"
+}</pre>
+<h3>5.2. Registrar diagnostico</h3>
+<p><span class="metodo patch">PATCH</span> <code>/api/ordens-de-servico/{ordemDeServicoId}/registrar-diagnostico</code></p>
+<pre>{
+  "diagnostico": "Necessaria troca de oleo e filtro",
+  "itens": [
+    {
+      "servicoId": "COLE_AQUI_O_SERVICO_ID",
+      "pecaId": "COLE_AQUI_A_PECA_ID",
+      "quantidade": 1,
+      "observacao": "Substituir o filtro durante o servico"
+    }
+  ]
+}</pre>
+<h3>5.3. Gerar orcamento</h3>
+<p><span class="metodo post">POST</span> <code>/api/orcamentos</code> &mdash; guarde o <code>id</code> (sera o <code>orcamentoId</code>).</p>
+<pre>{
+  "ordemDeServicoId": "COLE_AQUI_O_ORDEM_DE_SERVICO_ID",
+  "observacao": "Orcamento inicial"
+}</pre>
+<h3>5.4. Enviar orcamento ao cliente</h3>
+<p><span class="metodo patch">PATCH</span> <code>/api/orcamentos/{orcamentoId}/enviar</code> &mdash; sem corpo.</p>
+
+<h2>6. Aprovacao de orcamento (API obrigatoria 3)</h2>
+<p>Ha duas formas. A exigida pela fase e o <strong>webhook externo</strong>.</p>
+
+<h3>6.1. Via webhook externo (com assinatura HMAC)</h3>
+<p><span class="metodo post">POST</span> <code>/api/webhooks/orcamentos/{orcamentoId}/resposta</code></p>
+<p>Este endpoint exige o header <code>X-Webhook-Signature</code>, calculado com o <code>WEBHOOK_ORCAMENTO_SECRET</code>. Nao da para montar a assinatura na mao &mdash; use o script PowerShell da secao 9 para gerar o corpo e o header prontos.</p>
+<p>Corpo (exemplo; o <code>externalEventId</code> e a assinatura saem do script):</p>
+<pre>{
+  "externalEventId": "evt-0001",
+  "resposta": "Aprovado",
+  "timestampUnix": 1762150000
+}</pre>
+<p>No Swagger, cole esse corpo e preencha o campo de header <code>X-Webhook-Signature</code> com o valor <code>sha256=...</code> gerado pelo script. Valores aceitos em <code>resposta</code>: <code>Aprovado</code> ou <code>Rejeitado</code>.</p>
+<div class="box">Ao aprovar, a OS passa para <code>EmExecucao</code> e o estoque e reservado. Reenviar o mesmo <code>externalEventId</code> e idempotente (a segunda chamada retorna <code>repetido: true</code> e nao reserva de novo).</div>
+
+<h3>6.2. Via cliente autenticado (alternativa)</h3>
+<p>Primeiro crie um usuario com role Cliente:</p>
+<p><span class="metodo post">POST</span> <code>/api/auth/usuarios</code> (como Admin)</p>
+<pre>{
+  "email": "bruno.03fr@gmail.com",
+  "role": "Cliente",
+  "clienteId": "COLE_AQUI_O_CLIENTE_ID"
+}</pre>
+<p>A resposta traz uma senha temporaria. Faca login com esse usuario, troque a senha em <code>POST /api/auth/alterar-senha</code>, logue de novo e então chame:</p>
+<p><span class="metodo patch">PATCH</span> <code>/api/orcamentos/{orcamentoId}/aprovar</code> (ou <code>/rejeitar</code>) &mdash; sem corpo.</p>
+
+<h2>7. Execucao, finalizacao e entrega</h2>
+<pre>PATCH /api/ordens-de-servico/{ordemDeServicoId}/servicos/{servicoId}/executar
+PATCH /api/ordens-de-servico/{ordemDeServicoId}/finalizar
+PATCH /api/ordens-de-servico/{ordemDeServicoId}/entregar</pre>
+<p>Nenhum tem corpo. Execute na ordem. Ao finalizar, as reservas de estoque sao consumidas.</p>
+
+<h2>8. Listagem de OS (API obrigatoria 4)</h2>
+<p><span class="metodo get">GET</span> <code>/api/ordens-de-servico?pagina=1&amp;tamanhoPagina=20</code></p>
+<p>Retorna as OS ordenadas por prioridade (Em Execucao &gt; Aguardando Aprovacao &gt; Em Diagnostico &gt; Recebida), mais antigas primeiro, <strong>excluindo logicamente</strong> as Finalizadas e Entregues. Para comprovar a exclusao logica, consulte uma OS entregue por id: ela ainda existe em <code>GET /api/ordens-de-servico/{id}</code>, mas nao aparece na listagem.</p>
+
+<h2>9. Script para o webhook (gerar corpo + assinatura)</h2>
+<p>O corpo canonico assinado e: <code>externalEventId \n timestampUnix \n orcamentoId \n RESPOSTA</code> (RESPOSTA em maiusculas). Rode este PowerShell, informando o <code>orcamentoId</code> e o mesmo <code>WEBHOOK_ORCAMENTO_SECRET</code> do seu <code>.env</code>:</p>
+<pre># gera-webhook.ps1
+param(
+  [Parameter(Mandatory=$true)][string]$OrcamentoId,
+  [Parameter(Mandatory=$true)][string]$Secret,
+  [ValidateSet("Aprovado","Rejeitado")][string]$Resposta = "Aprovado"
+)
+$externalEventId = "evt-" + [guid]::NewGuid().ToString("N").Substring(0,8)
+$ts = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+$payload = "$externalEventId`n$ts`n$OrcamentoId`n$($Resposta.ToUpperInvariant())"
+$hmac = [System.Security.Cryptography.HMACSHA256]::new([Text.Encoding]::UTF8.GetBytes($Secret))
+$hash = $hmac.ComputeHash([Text.Encoding]::UTF8.GetBytes($payload))
+$sig  = ([BitConverter]::ToString($hash) -replace '-','').ToLower()
+
+Write-Host "`n--- Corpo (cole no Swagger) ---"
+@{ externalEventId=$externalEventId; resposta=$Resposta; timestampUnix=$ts } | ConvertTo-Json
+Write-Host "`n--- Header X-Webhook-Signature ---"
+Write-Host "sha256=$sig"</pre>
+<p>O script ja esta salvo na raiz do projeto como <code>gera-webhook.ps1</code>. Uso (Windows PowerShell):</p>
+<pre>powershell -ExecutionPolicy Bypass -File ./gera-webhook.ps1 `
+  -OrcamentoId "COLE_O_ORCAMENTO_ID" `
+  -Secret "SEU_WEBHOOK_SECRET"</pre>
+<p>O <code>-ExecutionPolicy Bypass</code> e necessario porque o sistema bloqueia scripts por padrao. Ele imprime o JSON do corpo e o header <code>sha256=...</code>, prontos para colar no Swagger. O timestamp vale por 300s (tolerancia padrao), entao use logo apos gerar.</p>
+
+<h2>10. Teste tambem via cURL (sem Swagger)</h2>
+<pre># Login e captura do token
+TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@oficina.local","senha":"Admin@123456"}' | jq -r .token)
+
+# Listar OS usando o token
+curl -s http://localhost:8080/api/ordens-de-servico \
+  -H "Authorization: Bearer $TOKEN" | jq</pre>
+
+<h2>11. Verificar a notificacao por e-mail</h2>
+<p>Cada mudanca de status gera um e-mail para o e-mail do cliente da OS. Com o provider padrao <code>Log</code>, o envio e apenas registrado no log do Worker:</p>
+<pre>docker compose logs -f worker</pre>
+<div class="box alerta">Para enviar e-mail <strong>de verdade</strong> para <code>bruno.03fr@gmail.com</code>, configure no <code>.env</code>: <code>EMAIL_PROVIDER=Resend</code> e <code>RESEND_API_KEY=sua-chave</code> (conta gratuita em resend.com). Sem isso, o e-mail so aparece no log.</div>
+
+<h2>12. Simular escalabilidade (HPA) no Kubernetes</h2>
+<pre># Em um terminal, observe o autoscaler:
+kubectl -n oficina-mecanica get hpa -w
+
+# Em outro, gere carga (exemplo com um pod temporario):
+kubectl -n oficina-mecanica run carga --rm -it --image=williamyeh/hey -- \
+  -z 120s -c 50 http://oficina-api/health/ready</pre>
+<p>Observe o numero de replicas da API subir (ate 6) conforme a CPU aumenta, e cair quando a carga termina.</p>
+
+</body>
+</html>

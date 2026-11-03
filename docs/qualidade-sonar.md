@@ -41,6 +41,22 @@ Secret:   SONAR_TOKEN
 
 O token nunca deve ser colocado no README, workflow, `.env.example` ou historico Git.
 
+### Solucao para falha de autenticacao
+
+Quando o scanner mostra `Authentication with the server has failed`, o build e a cobertura nao sao a causa. O `SONAR_TOKEN` recebido pelo runner esta ausente, expirado, revogado ou sem permissao de analise no projeto.
+
+Procedimento:
+
+1. gerar um token novo no SonarQube Cloud com acesso ao projeto ou organizacao;
+2. abrir o repositorio no GitHub em `Settings > Secrets and variables > Actions`;
+3. criar ou substituir o **Repository secret** chamado exatamente `SONAR_TOKEN`;
+4. colar somente o token bruto, sem aspas, espacos ou quebras de linha;
+5. executar novamente o workflow `SonarQube Cloud`.
+
+Se o token estiver cadastrado como Environment secret, o job somente o recebe quando declara o mesmo `environment`. Para este projeto, a configuracao esperada e um Repository secret. Secrets nao sao enviados pelo GitHub para pull requests de forks ou do Dependabot; o workflow ignora esses casos para nao executar uma analise sem credencial.
+
+O workflow valida o secret antes do scanner e separa `begin`, build, testes e `end` em etapas diferentes. Assim, uma falha no `begin` interrompe o job imediatamente e nao produz o erro secundario e enganoso de `SonarQubeAnalysisConfig.xml` ausente.
+
 O workflow executa build Release, toda a suite de testes unitarios e gera `coverage.opencover.xml` com `coverlet.msbuild`. O scanner recebe esse relatorio pela propriedade `sonar.cs.opencover.reportsPaths`, permitindo que o dashboard apresente cobertura C# em vez de apenas analisar o codigo estaticamente.
 
 A cobertura do Quality Gate foi delimitada ao projeto Domain, que apresentou `82,03%` de linhas na validacao OpenCover. API, Application e Infrastructure continuam sendo analisadas pelo Sonar para bugs, vulnerabilidades, hotspots, duplicacao e code smells, mas foram explicitamente excluidas do calculo de cobertura porque a meta academica definida para esta fase se refere aos dominios criticos. Essa delimitacao deve permanecer declarada no README e no relatorio, evitando apresentar o percentual como cobertura global da solucao.

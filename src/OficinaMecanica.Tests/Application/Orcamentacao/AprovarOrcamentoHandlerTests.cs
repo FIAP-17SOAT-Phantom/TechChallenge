@@ -1,5 +1,6 @@
 using OficinaMecanica.Application.Common.Interfaces;
 using OficinaMecanica.Application.UseCases.Orcamentacao.Commands;
+using OficinaMecanica.Application.UseCases.Orcamentacao.Services;
 using OficinaMecanica.Domain.Common;
 using OficinaMecanica.Domain.Estoque.Entities;
 using OficinaMecanica.Domain.Oficina.Entities;
@@ -69,7 +70,8 @@ public sealed class AprovarOrcamentoHandlerTests
         var ordemDeServicoRepository = new OrdemDeServicoRepositoryFake(ordemDeServico);
         var pecaRepository = new PecaRepositoryFake(peca);
         var unitOfWork = new UnitOfWorkFake();
-        var handler = new AprovarOrcamentoHandler(orcamentoRepository, ordemDeServicoRepository, pecaRepository, unitOfWork);
+        var processador = new ProcessadorRespostaOrcamento(orcamentoRepository, ordemDeServicoRepository, pecaRepository);
+        var handler = new AprovarOrcamentoHandler(processador, unitOfWork);
         return new ApprovalScenario(handler, orcamento, ordemDeServico, peca, unitOfWork);
     }
 
@@ -126,6 +128,7 @@ public sealed class AprovarOrcamentoHandlerTests
         public Task<IReadOnlyList<OrdemDeServico>> GetPagedByClienteIdAsync(Guid clienteId, StatusOS? status, int page, int pageSize, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<OrdemDeServico>>([]);
         public Task<IReadOnlyList<OrdemDeServico>> GetByStatusAsync(StatusOS status, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<OrdemDeServico>>([]);
         public Task<IReadOnlyList<OrdemDeServico>> GetAllAsync(int page, int pageSize, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<OrdemDeServico>>([]);
+        public Task<IReadOnlyList<OrdemDeServico>> GetFilaOperacionalAsync(int page, int pageSize, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<OrdemDeServico>>([]);
         public Task<bool> ExistsByVeiculoIdAsync(Guid veiculoId, CancellationToken cancellationToken = default) => Task.FromResult(false);
         public Task<TimeSpan?> GetTempoMedioExecucaoAsync(CancellationToken cancellationToken = default) => Task.FromResult<TimeSpan?>(null);
         public Task<string> GerarProximoNumeroAsync(CancellationToken cancellationToken = default) => Task.FromResult("OS-0002");

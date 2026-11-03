@@ -1,0 +1,176 @@
+name: CD - Build de Imagens, Provisionamento e Deploy
+
+# Pipeline de Entrega Continua (Fase 2):
+#   1. Reexecuta build + testes automatizados (gate de qualidade).
+#   2. Builda e publica as imagens Docker (API e Worker) no GHCR.
+#   3. Provisiona o cluster Kubernetes (kind) e o banco com Terraform.
+#   4. Aplica os manifestos YAML, roda a migration do banco e faz o deploy.
+#
+# Observacao: o deploy roda em um cluster kind efemero dentro do runner,
+# demonstrando o fluxo completo de CD de forma reprodutivel. Para um cluster
+# real (EKS/GKE/AKS), configure os secrets de nuvem e um KUBECONFIG remoto no
+# job "deploy".
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_API: ghcr.io/${{ github.repository_owner }}/techchallenge-api
+  IMAGE_WORKER: ghcr.io/${{ github.repository_owner }}/techchallenge-worker
+
+jobs:
+  # ------------------------------------------------------------------
+  # 1. Build + testes automatizados (gate antes de publicar imagens)
+  # ------------------------------------------------------------------
+  build-test:
+    name: Build e Testes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore src/OficinaMecanica.slnx
+
+      - name: Build
+        run: dotnet build src/OficinaMecanica.slnx --no-restore --configuration Release
+
+      - name: Testes unitarios
+        run: dotnet test src/OficinaMecanica.Tests/OficinaMecanica.Tests.csproj --no-build --configuration Release
+
+  # ------------------------------------------------------------------
+  # 2. Build e publicacao das imagens Docker no GHCR
+  # ------------------------------------------------------------------
+  docker:
+    name: Build e Push das Imagens Docker
+    runs-on: ubuntu-latest
+    needs: build-test
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Definir tag da imagem
+        id: meta
+        run: echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Login no GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build e push da imagem da API
+        uses: docker/build-push-action@v6
+        with:
+          context: ./src
+          file: ./src/OficinaMecanica.API/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_API }}:${{ steps.meta.outputs.tag }}
+            ${{ env.IMAGE_API }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build e push da imagem do Worker
+        uses: docker/build-push-action@v6
+        with:
+          context: ./src
+          file: ./src/OficinaMecanica.Worker/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_WORKER }}:${{ steps.meta.outputs.tag }}
+            ${{ env.IMAGE_WORKER }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ------------------------------------------------------------------
+  # 3 + 4. Provisionamento (Terraform) e Deploy no Kubernetes
+  # ------------------------------------------------------------------
+  deploy:
+    name: Provisionar e Deployar no Kubernetes
+    runs-on: ubuntu-latest
+    needs: docker
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.9.8'
+
+      # Provisiona o cluster Kubernetes (kind) + banco + segredos via IaC.
+      - name: Terraform Init
+        working-directory: infra
+        run: terraform init -input=false
+
+      - name: Terraform Apply (cluster + banco + segredos)
+        working-directory: infra
+        env:
+          TF_VAR_postgres_password: ${{ secrets.POSTGRES_PASSWORD || 'Ci-Postgres-Pass-123456789' }}
+          TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET || 'ci-jwt-secret-com-no-minimo-32-bytes-aqui!!' }}
+          TF_VAR_webhook_secret: ${{ secrets.WEBHOOK_SECRET || 'ci-webhook-secret-com-no-minimo-32-bytes!!' }}
+          TF_VAR_admin_password: ${{ secrets.ADMIN_PASSWORD || 'Ci-Admin-Pass-123456789' }}
+        run: terraform apply -auto-approve -input=false
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+
+      # Garante que o cluster responde antes de aplicar os manifestos.
+      - name: Aguardar cluster pronto
+        run: kubectl --context kind-oficina-mecanica wait --for=condition=Ready nodes --all --timeout=180s
+
+      # Carrega as imagens recem-publicadas no cluster kind.
+      - name: Carregar imagens no cluster kind
+        env:
+          IMAGE_TAG: ${{ needs.docker.outputs.image_tag }}
+        run: |
+          docker pull "${IMAGE_API}:${IMAGE_TAG}"
+          docker pull "${IMAGE_WORKER}:${IMAGE_TAG}"
+          kind load docker-image "${IMAGE_API}:${IMAGE_TAG}" --name oficina-mecanica
+          kind load docker-image "${IMAGE_WORKER}:${IMAGE_TAG}" --name oficina-mecanica
+
+      # Aplica os manifestos YAML (Deployments, Services, ConfigMap, HPA, etc.)
+      # e a Job de migration do banco de dados, fixando a tag de imagem do build.
+      - name: Aplicar manifestos e migration do banco
+        env:
+          IMAGE_TAG: ${{ needs.docker.outputs.image_tag }}
+        run: |
+          cd k8s/overlays/local
+          kubectl kustomize . > /tmp/base.yaml
+          kubectl --context kind-oficina-mecanica apply -k . \
+            || kubectl --context kind-oficina-mecanica apply -f /tmp/base.yaml
+          kubectl --context kind-oficina-mecanica -n oficina-mecanica \
+            set image deployment/oficina-api api="${IMAGE_API}:${IMAGE_TAG}"
+          kubectl --context kind-oficina-mecanica -n oficina-mecanica \
+            set image deployment/oficina-worker worker="${IMAGE_WORKER}:${IMAGE_TAG}"
+
+      - name: Aguardar rollout da API
+        run: |
+          kubectl --context kind-oficina-mecanica -n oficina-mecanica \
+            rollout status deployment/oficina-api --timeout=300s
+
+      - name: Status final do deploy
+        if: always()
+        run: |
+          kubectl --context kind-oficina-mecanica -n oficina-mecanica get all
+          kubectl --context kind-oficina-mecanica -n oficina-mecanica get hpa

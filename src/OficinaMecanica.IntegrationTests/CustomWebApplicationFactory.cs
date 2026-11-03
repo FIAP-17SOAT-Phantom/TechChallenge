@@ -12,7 +12,8 @@ namespace OficinaMecanica.IntegrationTests;
 /// </summary>
 public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private static readonly string[] ConfigurationKeys = ["ConnectionStrings__DefaultConnection", "Jwt__Issuer", "Jwt__Audience", "Jwt__Secret", "Jwt__ExpirationMinutes", "Authentication__SeedUsers__0__Email", "Authentication__SeedUsers__0__Password", "Authentication__SeedUsers__0__Role"];
+    public const string WebhookSecret = "segredo-webhook-integracao-com-mais-de-32-bytes-123456789";
+    private static readonly string[] ConfigurationKeys = ["ConnectionStrings__DefaultConnection", "Jwt__Issuer", "Jwt__Audience", "Jwt__Secret", "Jwt__ExpirationMinutes", "Webhook__OrcamentoSecret", "Database__ApplyMigrationsOnStartup", "Authentication__SeedOnStartup", "Authentication__SeedUsers__0__Email", "Authentication__SeedUsers__0__Password", "Authentication__SeedUsers__0__Role"];
     private readonly Dictionary<string, string?> _originalEnvironmentVariables = [];
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
         .WithImage("postgres:16-alpine")
@@ -62,6 +63,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         ["Jwt:Audience"] = "OficinaMecanica.Client",
         ["Jwt:Secret"] = "chave-secreta-de-testes-com-mais-de-32-bytes-1234567890",
         ["Jwt:ExpirationMinutes"] = "60",
+        ["Webhook:OrcamentoSecret"] = WebhookSecret,
+        ["Database:ApplyMigrationsOnStartup"] = "true",
+        ["Authentication:SeedOnStartup"] = "true",
         ["Authentication:SeedUsers:0:Email"] = "admin@oficina.com",
         ["Authentication:SeedUsers:0:Password"] = "Admin@123456",
         ["Authentication:SeedUsers:0:Role"] = "Admin"
