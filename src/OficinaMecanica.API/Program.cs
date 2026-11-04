@@ -64,10 +64,25 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+// Swagger (apenas em Desenvolvimento). A API usa uma FallbackPolicy global que
+// exige usuario autenticado em todo request sem [AllowAnonymous]. A UI do
+// Swashbuckle e servida por middleware (nao por um endpoint com metadata de
+// autorizacao), entao cai no fallback e retorna 401.
+//
+// MapWhen cria um pipeline COMPLETAMENTE separado para "/swagger": requisicoes
+// desse caminho sao atendidas so pelo Swagger e nunca chegam ao UseRouting /
+// UseAuthorization do pipeline principal (onde a FallbackPolicy e aplicada).
+// Por isso usamos MapWhen (ramo terminal) em vez de UseWhen (ramo que retorna
+// ao pipeline principal).
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.MapWhen(
+        context => context.Request.Path.StartsWithSegments("/swagger"),
+        branch =>
+        {
+            branch.UseSwagger();
+            branch.UseSwaggerUI();
+        });
 }
 
 app.UseHttpsRedirection();

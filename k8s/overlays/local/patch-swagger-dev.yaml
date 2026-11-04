@@ -1,0 +1,18 @@
+# Ambiente LOCAL/demo: habilita o Swagger UI.
+# No codigo (Program.cs) o Swagger so e exposto quando
+# app.Environment.IsDevelopment() e verdadeiro. Em Production (padrao da base)
+# o Swagger fica desligado. Para a demonstracao local (gravacao do video)
+# sobrescrevemos ASPNETCORE_ENVIRONMENT=Development apenas neste overlay,
+# assim o Swagger abre em /swagger via "kubectl port-forward".
+#
+# NAO use este overlay em producao: o Swagger nao deve ficar exposto la.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oficina-config
+data:
+  # Tanto a API (ASPNETCORE_ENVIRONMENT) quanto o Worker (DOTNET_ENVIRONMENT)
+  # precisam ficar em Development para o Swagger ser exposto e para o ambiente
+  # de demo ficar consistente. A base define ambos como Production.
+  ASPNETCORE_ENVIRONMENT: Development
+  DOTNET_ENVIRONMENT: Development
