@@ -16,12 +16,6 @@ variable "kubeconfig_path" {
   default     = "~/.kube/config"
 }
 
-variable "kind_node_image" {
-  description = "Imagem de no do kind. Deve casar com a versao do kind CLI usada no deploy para evitar incompatibilidade de config do containerd."
-  type        = string
-  default     = "kindest/node:v1.32.2"
-}
-
 # ---------------------------------------------------------------------------
 # Banco de dados. O PostgreSQL e provisionado pelos manifestos Kubernetes
 # (k8s/overlays/local), nao pelo Terraform. A senha abaixo so alimenta o

@@ -1,72 +1,31 @@
 # ===========================================================================
-# Provisionamento do cluster Kubernetes local (kind) para a Oficina Mecanica.
+# Provisionamento da infra base no cluster Kubernetes (kind) para a Oficina.
 #
 # Recursos criados:
-#   - null_resource.kind_cluster  : cria o cluster kind via CLI (versao unica)
 #   - kubernetes_namespace.oficina: namespace da aplicacao
 #   - kubernetes_secret.oficina   : segredos sensiveis da aplicacao
 #   - null_resource.kustomize     : aplica os manifestos k8s (opcional)
 #
-# Por que criar o cluster pelo CLI e nao pelo provider Terraform de kind?
-# Para evitar DUAS versoes de kind no fluxo (a embutida no provider e a do CLI
-# usada no "kind load docker-image"). Versoes divergentes geram o erro
-# "unknown containerd config version". Usando so o CLI, ha uma unica versao de
-# kind/containerd em todo o pipeline.
+# IMPORTANTE: o cluster kind NAO e criado por este Terraform. Ele e criado
+# ANTES, pelo CLI "kind" (no pipeline de CD ou manualmente, veja infra/README.md).
+# Motivos:
+#   1. Evita duas versoes de kind no fluxo (provider embutido vs. CLI do
+#      "kind load"), que causavam "unknown containerd config version".
+#   2. Evita o problema de timing do provider kubernetes, que e configurado no
+#      inicio do apply e precisa que o kubeconfig ja exista.
+# Assim o Terraform assume que o kubeconfig/contexto "kind-<cluster>" ja existe
+# e cuida apenas do namespace + segredos.
 #
-# O banco de dados PostgreSQL NAO e provisionado aqui: ele ja faz parte dos
+# O banco de dados PostgreSQL tambem NAO e provisionado aqui: ele faz parte dos
 # manifestos Kubernetes do overlay local (k8s/overlays/local, StatefulSet +
-# Service "postgres", imagem oficial postgres:16-alpine). Terraform cuida da
-# infra base (cluster + namespace + segredos) e os manifestos sobem app + banco.
+# Service "postgres", imagem oficial postgres:16-alpine).
 #
-# Para ambiente cloud (ex.: AWS EKS) troque este null_resource pelo modulo do
-# cluster gerenciado e use um banco gerenciado (RDS). Veja infra/README.md.
+# Para ambiente cloud (ex.: AWS EKS) aponte o provider kubernetes para o cluster
+# gerenciado e use um banco gerenciado (RDS). Veja infra/README.md.
 # ===========================================================================
 
-# ---------------------------------------------------------------------------
-# Cria o cluster kind via CLI. O CLI "kind" deve estar no PATH (o pipeline de
-# CD instala uma versao fixa; localmente instale conforme infra/README.md).
-# A config inline expoe a porta 30080 (NodePort da API) para o host.
-# ---------------------------------------------------------------------------
-# Config do cluster kind escrita em arquivo para evitar heredoc fragil no shell.
-resource "local_file" "kind_config" {
-  filename = "${path.module}/.kind-config.yaml"
-  content  = <<-EOT
-    kind: Cluster
-    apiVersion: kind.x-k8s.io/v1alpha4
-    nodes:
-      - role: control-plane
-        extraPortMappings:
-          - containerPort: 30080
-            hostPort: 30080
-            protocol: TCP
-      - role: worker
-  EOT
-}
-
-resource "null_resource" "kind_cluster" {
-  triggers = {
-    cluster_name = var.cluster_name
-    node_image   = var.kind_node_image
-    config_hash  = local_file.kind_config.content_md5
-  }
-
-  provisioner "local-exec" {
-    interpreter = ["/bin/bash", "-c"]
-    command     = <<-EOT
-      set -euo pipefail
-      if ! kind get clusters | grep -qx "${var.cluster_name}"; then
-        kind create cluster --name "${var.cluster_name}" --image "${var.kind_node_image}" --wait 120s --config "${local_file.kind_config.filename}"
-      fi
-    EOT
-  }
-
-  provisioner "local-exec" {
-    when    = destroy
-    command = "kind delete cluster --name ${self.triggers.cluster_name} || true"
-  }
-}
-
-# O provider kubernetes consome o kubeconfig do contexto gerado pelo kind.
+# O provider kubernetes consome o kubeconfig do contexto gerado pelo kind,
+# que ja deve existir (cluster criado antes do terraform apply).
 provider "kubernetes" {
   config_path    = pathexpand(var.kubeconfig_path)
   config_context = "kind-${var.cluster_name}"
@@ -80,8 +39,6 @@ resource "kubernetes_namespace" "oficina" {
       "managed-by"                = "terraform"
     }
   }
-
-  depends_on = [null_resource.kind_cluster]
 }
 
 # ---------------------------------------------------------------------------

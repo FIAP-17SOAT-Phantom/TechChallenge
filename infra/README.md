@@ -14,9 +14,11 @@ nuvem (AWS EKS).
 
 ## Recursos provisionados
 
+O cluster kind em si e criado pelo CLI `kind` (fora do Terraform) usando
+`kind-config.yaml`. O Terraform gerencia os recursos dentro do cluster:
+
 | Recurso Terraform | Tipo | Descricao |
 |---|---|---|
-| `null_resource.kind_cluster` | Cluster Kubernetes | Cria o cluster kind via CLI (1 control-plane + 1 worker), mapeando a porta `30080` do NodePort para o host. Usa uma unica versao de kind em todo o fluxo. |
 | `kubernetes_namespace.oficina` | Namespace | Namespace `oficina-mecanica` onde a aplicacao e implantada. |
 | `kubernetes_secret.oficina` | Secret | `oficina-secrets` com senha do banco, JWT, segredo do webhook, admin e Resend. |
 | `null_resource.kustomize` | Deploy | Aplica `k8s/overlays/local` via `kubectl apply -k` (opcional, `apply_k8s_manifests`). |
@@ -27,10 +29,14 @@ As variaveis e seus valores padrao estao documentados em `variables.tf`.
 
 - [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.6
 - [Docker](https://docs.docker.com/get-docker/) em execucao (o kind cria o cluster em containers)
-- [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation) CLI no PATH (o Terraform chama `kind` para criar o cluster). Use a mesma versao do pipeline (v0.27.0).
+- [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation) CLI no PATH. Use a mesma versao do pipeline (v0.27.0).
 - [kubectl](https://kubernetes.io/docs/tasks/tools/) no PATH
 
 ## Como aplicar
+
+O cluster kind e criado pelo CLI **antes** do Terraform (que cuida so de
+namespace + segredos). Isso evita problemas de versao de kind e de timing do
+provider kubernetes.
 
 ```bash
 cd infra
@@ -39,16 +45,16 @@ cd infra
 cp terraform.tfvars.example terraform.tfvars
 #   edite terraform.tfvars com senhas reais
 
-# 2. Inicialize os providers
+# 2. Crie o cluster kind (uma unica versao de kind em todo o fluxo)
+kind create cluster --name oficina-mecanica \
+  --image kindest/node:v1.32.2 --wait 120s --config kind-config.yaml
+
+# 3. Inicialize os providers e provisione namespace + segredos
 terraform init
-
-# 3. Revise o plano
 terraform plan
-
-# 4. Provisione cluster + namespace + segredos
 terraform apply
 
-# 5. (opcional) ver saidas uteis
+# 4. (opcional) ver saidas uteis
 terraform output
 ```
 
@@ -64,11 +70,12 @@ A API fica acessivel em `http://localhost:30080` (NodePort mapeado pelo kind).
 ## Destruir
 
 ```bash
+# Remove namespace + segredos gerenciados pelo Terraform
 terraform destroy
-```
 
-Isso remove o cluster kind (e tudo que roda nele, incluindo o banco e seus
-volumes, que vivem dentro do cluster).
+# Remove o cluster kind (e tudo que roda nele, incluindo o banco e seus volumes)
+kind delete cluster --name oficina-mecanica
+```
 
 ## Usando um banco de dados gerenciado
 
@@ -86,7 +93,7 @@ Cloud SQL) em vez do PostgreSQL do overlay local:
 
 Para provisionar na nuvem em vez do kind:
 
-1. Substitua o `null_resource.kind_cluster` pelo modulo oficial
+1. Em vez de criar o cluster com o CLI `kind`, use o modulo oficial
    [`terraform-aws-modules/eks/aws`](https://registry.terraform.io/modules/terraform-aws-modules/eks/aws/latest)
    (cria VPC, control-plane EKS e node groups).
 2. Provisione o banco com
