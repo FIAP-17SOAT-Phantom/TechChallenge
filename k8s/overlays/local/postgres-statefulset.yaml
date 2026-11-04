@@ -18,7 +18,12 @@ spec:
         app.kubernetes.io/component: database
     spec:
       terminationGracePeriodSeconds: 30
+      # Roda todo o pod como o usuario postgres (uid/gid 70 na imagem alpine).
+      # Sem runAsUser/runAsGroup o entrypoint tenta chown/chmod do volume e
+      # falha com "Operation not permitted" -> CrashLoopBackOff.
       securityContext:
+        runAsUser: 70
+        runAsGroup: 70
         fsGroup: 70
       containers:
         - name: postgres
