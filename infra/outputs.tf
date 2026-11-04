@@ -19,8 +19,8 @@ output "namespace" {
 }
 
 output "postgres_service" {
-  description = "Host do servico de banco de dados dentro do cluster."
-  value       = var.postgres_enabled ? "postgres.${var.namespace}.svc.cluster.local:5432" : "banco externo (gerenciado)"
+  description = "Host do servico de banco de dados dentro do cluster (provisionado pelos manifestos k8s)."
+  value       = "postgres.${var.namespace}.svc.cluster.local:5432"
 }
 
 output "api_url_nodeport" {

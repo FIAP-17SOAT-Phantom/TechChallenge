@@ -4,13 +4,16 @@
 # Recursos criados:
 #   - kind_cluster.oficina        : cluster Kubernetes de 1 control-plane + 1 worker
 #   - kubernetes_namespace.oficina: namespace da aplicacao
-#   - helm_release.postgres       : banco de dados PostgreSQL (opcional)
 #   - kubernetes_secret.oficina   : segredos sensiveis da aplicacao
 #   - null_resource.kustomize     : aplica os manifestos k8s (opcional)
 #
+# O banco de dados PostgreSQL NAO e provisionado aqui: ele ja faz parte dos
+# manifestos Kubernetes do overlay local (k8s/overlays/local, StatefulSet +
+# Service "postgres", imagem oficial postgres:16-alpine). Terraform cuida da
+# infra base (cluster + namespace + segredos) e os manifestos sobem app + banco.
+#
 # Para ambiente cloud (ex.: AWS EKS) substitua o provider "kind" pelo modulo
-# do cluster gerenciado e o Helm do PostgreSQL por um banco gerenciado (RDS).
-# Veja infra/README.md para o passo a passo.
+# do cluster gerenciado e use um banco gerenciado (RDS). Veja infra/README.md.
 # ===========================================================================
 
 provider "kind" {}
@@ -41,21 +44,12 @@ resource "kind_cluster" "oficina" {
   }
 }
 
-# Os providers kubernetes/helm consomem o kubeconfig gerado pelo cluster kind.
+# O provider kubernetes consome o kubeconfig gerado pelo cluster kind.
 provider "kubernetes" {
   host                   = kind_cluster.oficina.endpoint
   client_certificate     = kind_cluster.oficina.client_certificate
   client_key             = kind_cluster.oficina.client_key
   cluster_ca_certificate = kind_cluster.oficina.cluster_ca_certificate
-}
-
-provider "helm" {
-  kubernetes {
-    host                   = kind_cluster.oficina.endpoint
-    client_certificate     = kind_cluster.oficina.client_certificate
-    client_key             = kind_cluster.oficina.client_key
-    cluster_ca_certificate = kind_cluster.oficina.cluster_ca_certificate
-  }
 }
 
 resource "kubernetes_namespace" "oficina" {
@@ -68,49 +62,6 @@ resource "kubernetes_namespace" "oficina" {
   }
 
   depends_on = [kind_cluster.oficina]
-}
-
-# ---------------------------------------------------------------------------
-# Banco de dados PostgreSQL provisionado no cluster (Helm chart da Bitnami).
-# Service resultante: "postgres" no namespace da aplicacao, porta 5432,
-# compativel com POSTGRES_HOST=postgres do ConfigMap da aplicacao.
-# ---------------------------------------------------------------------------
-resource "helm_release" "postgres" {
-  count = var.postgres_enabled ? 1 : 0
-
-  name       = "postgres"
-  namespace  = kubernetes_namespace.oficina.metadata[0].name
-  repository = "https://charts.bitnami.com/bitnami"
-  chart      = "postgresql"
-  version    = "15.5.38"
-
-  # Mantem o nome do Service como "postgres" (sem sufixo do release).
-  set {
-    name  = "fullnameOverride"
-    value = "postgres"
-  }
-  set {
-    name  = "auth.username"
-    value = var.postgres_username
-  }
-  set {
-    name  = "auth.password"
-    value = var.postgres_password
-  }
-  set {
-    name  = "auth.database"
-    value = var.postgres_database
-  }
-  set {
-    name  = "primary.persistence.size"
-    value = var.postgres_storage_size
-  }
-  set {
-    name  = "image.tag"
-    value = "16"
-  }
-
-  depends_on = [kubernetes_namespace.oficina]
 }
 
 # ---------------------------------------------------------------------------
@@ -153,6 +104,5 @@ resource "null_resource" "kustomize" {
 
   depends_on = [
     kubernetes_secret.oficina,
-    helm_release.postgres,
   ]
 }

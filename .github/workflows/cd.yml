@@ -124,12 +124,13 @@ jobs:
         with:
           terraform_version: '1.9.8'
 
-      # Provisiona o cluster Kubernetes (kind) + banco + segredos via IaC.
+      # Provisiona o cluster Kubernetes (kind) + namespace + segredos via IaC.
+      # O banco de dados sobe depois, junto com a aplicacao, via manifestos k8s.
       - name: Terraform Init
         working-directory: infra
         run: terraform init -input=false
 
-      - name: Terraform Apply (cluster + banco + segredos)
+      - name: Terraform Apply (cluster + namespace + segredos)
         working-directory: infra
         env:
           TF_VAR_postgres_password: ${{ secrets.POSTGRES_PASSWORD || 'Ci-Postgres-Pass-123456789' }}

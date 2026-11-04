@@ -4,12 +4,8 @@
 cluster_name = "oficina-mecanica"
 namespace    = "oficina-mecanica"
 
-# Banco de dados
-postgres_enabled      = true
-postgres_database     = "oficina_mecanica"
-postgres_username     = "oficina"
-postgres_password     = "troque-por-uma-senha-forte"
-postgres_storage_size = "2Gi"
+# Banco de dados (o PostgreSQL sobe pelos manifestos k8s; esta senha alimenta o Secret)
+postgres_password = "troque-por-uma-senha-forte"
 
 # Segredos da aplicacao (minimo 32 bytes em jwt/webhook)
 jwt_secret     = "troque-por-um-segredo-jwt-com-no-minimo-32-bytes"

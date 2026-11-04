@@ -17,36 +17,16 @@ variable "kubeconfig_path" {
 }
 
 # ---------------------------------------------------------------------------
-# Banco de dados (PostgreSQL) provisionado dentro do cluster via Helm/Bitnami.
+# Banco de dados. O PostgreSQL e provisionado pelos manifestos Kubernetes
+# (k8s/overlays/local), nao pelo Terraform. A senha abaixo so alimenta o
+# Secret "oficina-secrets" (chave postgres-password) consumido pelo banco e
+# pela aplicacao. Para um banco gerenciado (RDS/Cloud SQL), aponte o
+# POSTGRES_HOST no ConfigMap e use esta senha.
 # ---------------------------------------------------------------------------
-variable "postgres_enabled" {
-  description = "Provisiona uma instancia PostgreSQL dentro do cluster. Desative para usar um banco gerenciado (RDS, Cloud SQL, etc.)."
-  type        = bool
-  default     = true
-}
-
-variable "postgres_database" {
-  description = "Nome do banco de dados da aplicacao."
-  type        = string
-  default     = "oficina_mecanica"
-}
-
-variable "postgres_username" {
-  description = "Usuario do banco de dados da aplicacao."
-  type        = string
-  default     = "oficina"
-}
-
 variable "postgres_password" {
   description = "Senha do banco de dados da aplicacao. Nunca versionar: use TF_VAR_postgres_password ou um backend seguro."
   type        = string
   sensitive   = true
-}
-
-variable "postgres_storage_size" {
-  description = "Tamanho do volume persistente do PostgreSQL."
-  type        = string
-  default     = "2Gi"
 }
 
 # ---------------------------------------------------------------------------
