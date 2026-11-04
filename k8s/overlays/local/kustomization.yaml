@@ -5,10 +5,6 @@ resources:
   - ../../base
   - postgres-service.yaml
   - postgres-statefulset.yaml
-images:
-  - name: ghcr.io/fiap-17soat-phantom/techchallenge-api
-    newName: oficina-mecanica-api
-    newTag: local
-  - name: ghcr.io/fiap-17soat-phantom/techchallenge-worker
-    newName: oficina-mecanica-worker
-    newTag: local
+# A tag das imagens (api/worker/migration) e fixada no deploy via
+# "kustomize edit set image", para casar com as imagens carregadas no cluster
+# pelo "kind load". Em uso local, ajuste as tags conforme necessario.

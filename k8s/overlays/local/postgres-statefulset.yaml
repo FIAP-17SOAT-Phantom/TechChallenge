@@ -43,17 +43,30 @@ spec:
                 secretKeyRef:
                   name: oficina-secrets
                   key: postgres-password
+            # PGDATA em subdiretorio do volume: o initdb do postgres oficial falha
+            # quando o diretorio de dados e o proprio mount point do PVC (que pode
+            # conter lost+found), causando CrashLoopBackOff.
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
           readinessProbe:
             exec:
               command: ["/bin/sh", "-c", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
-            initialDelaySeconds: 5
+            initialDelaySeconds: 10
             periodSeconds: 5
             timeoutSeconds: 3
-            failureThreshold: 6
+            failureThreshold: 12
+          # startupProbe da folga ao initdb antes do liveness entrar em acao,
+          # evitando reinicios prematuros (CrashLoop) em disco lento (ex.: runner CI).
+          startupProbe:
+            exec:
+              command: ["/bin/sh", "-c", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
           livenessProbe:
             exec:
               command: ["/bin/sh", "-c", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
-            initialDelaySeconds: 20
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 6

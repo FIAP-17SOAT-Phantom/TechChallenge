@@ -183,19 +183,38 @@ jobs:
           kind load docker-image "${IMAGE_API}:${IMAGE_TAG}" --name oficina-mecanica
           kind load docker-image "${IMAGE_WORKER}:${IMAGE_TAG}" --name oficina-mecanica
 
-      # Aplica os manifestos YAML (Deployments, Services, ConfigMap, HPA, etc.)
-      # e a Job de migration do banco de dados, fixando a tag de imagem do build.
+      # Fixa a tag do build nos recursos que usam as imagens (API, Worker e a
+      # Job de migration) com kustomize, e aplica os manifestos ja apontando para
+      # a imagem carregada no cluster. Assim a migration tambem usa a imagem certa
+      # (evita ImagePullBackOff). O kubectl 1.14+ ja embute o kustomize.
       - name: Aplicar manifestos e migration do banco
         env:
           IMAGE_TAG: ${{ needs.docker.outputs.image_tag }}
           IMAGE_API: ${{ needs.docker.outputs.image_api }}
           IMAGE_WORKER: ${{ needs.docker.outputs.image_worker }}
         run: |
+          # Instala o kustomize CLI para editar as tags das imagens.
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/
+
+          cd k8s/overlays/local
+          kustomize edit set image \
+            "${IMAGE_API}=${IMAGE_API}:${IMAGE_TAG}" \
+            "${IMAGE_WORKER}=${IMAGE_WORKER}:${IMAGE_TAG}"
+          cd - >/dev/null
+
           kubectl --context kind-oficina-mecanica apply -k k8s/overlays/local
+
+      # Aguarda na ordem de dependencia: banco pronto -> migration concluida -> API.
+      - name: Aguardar banco de dados
+        run: |
           kubectl --context kind-oficina-mecanica -n oficina-mecanica \
-            set image deployment/oficina-api api="${IMAGE_API}:${IMAGE_TAG}"
+            rollout status statefulset/postgres --timeout=300s
+
+      - name: Aguardar migration do banco
+        run: |
           kubectl --context kind-oficina-mecanica -n oficina-mecanica \
-            set image deployment/oficina-worker worker="${IMAGE_WORKER}:${IMAGE_TAG}"
+            wait --for=condition=complete job/oficina-migration --timeout=300s
 
       - name: Aguardar rollout da API
         run: |
@@ -205,5 +224,14 @@ jobs:
       - name: Status final do deploy
         if: always()
         run: |
-          kubectl --context kind-oficina-mecanica -n oficina-mecanica get all
-          kubectl --context kind-oficina-mecanica -n oficina-mecanica get hpa
+          ctx="kind-oficina-mecanica"; ns="oficina-mecanica"
+          kubectl --context $ctx -n $ns get all
+          kubectl --context $ctx -n $ns get hpa
+          echo "=== Eventos recentes ==="
+          kubectl --context $ctx -n $ns get events --sort-by=.lastTimestamp | tail -30 || true
+          echo "=== Logs do PostgreSQL ==="
+          kubectl --context $ctx -n $ns logs statefulset/postgres --tail=50 || true
+          echo "=== Logs da migration ==="
+          kubectl --context $ctx -n $ns logs job/oficina-migration --tail=50 || true
+          echo "=== Descricao de pods nao prontos ==="
+          kubectl --context $ctx -n $ns describe pods | grep -A5 -i "Warning\|Error\|Back-off" || true
