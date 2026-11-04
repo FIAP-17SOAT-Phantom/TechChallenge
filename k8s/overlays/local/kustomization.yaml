@@ -5,6 +5,9 @@ resources:
   - ../../base
   - postgres-service.yaml
   - postgres-statefulset.yaml
+# Reduz replicas/recursos para o ambiente local e CI (runner pequeno).
+patches:
+  - path: patch-recursos-locais.yaml
 # A tag das imagens (api/worker/migration) e fixada no deploy via
 # "kustomize edit set image", para casar com as imagens carregadas no cluster
 # pelo "kind load". Em uso local, ajuste as tags conforme necessario.

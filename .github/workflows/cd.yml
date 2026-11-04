@@ -148,6 +148,16 @@ jobs:
             --config infra/kind-config.yaml
           kubectl --context kind-oficina-mecanica wait --for=condition=Ready nodes --all --timeout=180s
 
+      # O kind nao traz o metrics-server, exigido pelo HPA (sem ele o HPA fica
+      # com "cpu: <unknown>" e nao escala). Instala e habilita --kubelet-insecure-tls.
+      - name: Instalar metrics-server (para o HPA)
+        run: |
+          ctx="kind-oficina-mecanica"
+          kubectl --context $ctx apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+          kubectl --context $ctx -n kube-system patch deployment metrics-server --type=json \
+            -p='[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
+          kubectl --context $ctx -n kube-system rollout status deployment/metrics-server --timeout=120s || true
+
       # Terraform provisiona apenas namespace + segredos no cluster ja existente.
       # O banco de dados sobe depois, junto com a aplicacao, via manifestos k8s.
       - name: Terraform Init
@@ -201,37 +211,52 @@ jobs:
           kustomize edit set image \
             "${IMAGE_API}=${IMAGE_API}:${IMAGE_TAG}" \
             "${IMAGE_WORKER}=${IMAGE_WORKER}:${IMAGE_TAG}"
+          # Usa o kustomize CLI (recente) para renderizar e aplica com kubectl,
+          # evitando depender da versao de kustomize embutida no kubectl.
+          kustomize build . | kubectl --context kind-oficina-mecanica apply -f -
           cd - >/dev/null
 
-          kubectl --context kind-oficina-mecanica apply -k k8s/overlays/local
-
-      # Aguarda na ordem de dependencia: banco pronto -> migration concluida -> API.
-      - name: Aguardar banco de dados
+      # Espera na ordem de dependencia (banco -> migration -> API). Se algo nao
+      # ficar pronto no tempo, imprime diagnostico completo (eventos, logs,
+      # describe) NO MESMO step antes de falhar, para facilitar a investigacao.
+      - name: Aguardar deploy (com diagnostico)
         run: |
-          kubectl --context kind-oficina-mecanica -n oficina-mecanica \
-            rollout status statefulset/postgres --timeout=300s
-
-      - name: Aguardar migration do banco
-        run: |
-          kubectl --context kind-oficina-mecanica -n oficina-mecanica \
-            wait --for=condition=complete job/oficina-migration --timeout=300s
-
-      - name: Aguardar rollout da API
-        run: |
-          kubectl --context kind-oficina-mecanica -n oficina-mecanica \
-            rollout status deployment/oficina-api --timeout=300s
-
-      - name: Status final do deploy
-        if: always()
-        run: |
+          set +e
           ctx="kind-oficina-mecanica"; ns="oficina-mecanica"
-          kubectl --context $ctx -n $ns get all
-          kubectl --context $ctx -n $ns get hpa
-          echo "=== Eventos recentes ==="
-          kubectl --context $ctx -n $ns get events --sort-by=.lastTimestamp | tail -30 || true
-          echo "=== Logs do PostgreSQL ==="
-          kubectl --context $ctx -n $ns logs statefulset/postgres --tail=50 || true
-          echo "=== Logs da migration ==="
-          kubectl --context $ctx -n $ns logs job/oficina-migration --tail=50 || true
-          echo "=== Descricao de pods nao prontos ==="
-          kubectl --context $ctx -n $ns describe pods | grep -A5 -i "Warning\|Error\|Back-off" || true
+          k() { kubectl --context "$ctx" -n "$ns" "$@"; }
+
+          diagnostico() {
+            echo ":::::::::::::::: DIAGNOSTICO ::::::::::::::::"
+            k get all -o wide || true
+            k get pvc || true
+            echo "=== Eventos ==="
+            k get events --sort-by=.lastTimestamp | tail -40 || true
+            echo "=== describe postgres-0 ==="
+            k describe pod postgres-0 | tail -40 || true
+            echo "=== logs postgres ==="
+            k logs statefulset/postgres --tail=60 || true
+            k logs postgres-0 --previous --tail=60 || true
+            echo "=== logs migration ==="
+            k logs job/oficina-migration --tail=60 || true
+            echo "=== describe oficina-api (um pod) ==="
+            k describe pod -l app.kubernetes.io/name=oficina-api | tail -60 || true
+          }
+
+          echo ">>> Aguardando PostgreSQL..."
+          if ! k rollout status statefulset/postgres --timeout=240s; then
+            echo "ERRO: PostgreSQL nao ficou pronto."; diagnostico; exit 1
+          fi
+
+          echo ">>> Aguardando migration..."
+          if ! k wait --for=condition=complete job/oficina-migration --timeout=240s; then
+            echo "ERRO: migration nao concluiu."; diagnostico; exit 1
+          fi
+
+          echo ">>> Aguardando API..."
+          if ! k rollout status deployment/oficina-api --timeout=240s; then
+            echo "ERRO: API nao ficou pronta."; diagnostico; exit 1
+          fi
+
+          echo ">>> Tudo pronto."
+          k get all
+          k get hpa

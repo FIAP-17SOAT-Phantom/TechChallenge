@@ -1,0 +1,16 @@
+# Reduz a pressao de recursos no ambiente local/CI (runner pequeno).
+# A API comeca com 1 replica e o HPA tem minimo 1; o escalonamento ate 6
+# continua funcionando para a demonstracao de carga.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oficina-api
+spec:
+  replicas: 1
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: oficina-api
+spec:
+  minReplicas: 1
