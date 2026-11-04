@@ -151,6 +151,14 @@ jobs:
       - name: Aguardar cluster pronto
         run: kubectl --context kind-oficina-mecanica wait --for=condition=Ready nodes --all --timeout=180s
 
+      # As imagens no GHCR sao privadas por padrao: autentica antes de baixar.
+      - name: Login no GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       # Carrega as imagens recem-publicadas no cluster kind.
       - name: Carregar imagens no cluster kind
         env:
