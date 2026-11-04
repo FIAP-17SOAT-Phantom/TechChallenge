@@ -1,6 +1,6 @@
 output "cluster_name" {
   description = "Nome do cluster kind provisionado."
-  value       = kind_cluster.oficina.name
+  value       = var.cluster_name
 }
 
 output "kubeconfig_path" {

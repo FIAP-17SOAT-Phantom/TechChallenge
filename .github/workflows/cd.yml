@@ -124,7 +124,21 @@ jobs:
         with:
           terraform_version: '1.9.8'
 
-      # Provisiona o cluster Kubernetes (kind) + namespace + segredos via IaC.
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+
+      # Instala o kind CLI em versao fixa. O Terraform usa este mesmo CLI para
+      # criar o cluster (via local-exec), garantindo uma unica versao de
+      # kind/containerd em todo o fluxo e evitando o erro
+      # "unknown containerd config version" no kind load docker-image.
+      - name: Setup kind CLI
+        run: |
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.27.0/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+          kind version
+
+      # Provisiona o cluster Kubernetes (kind, via CLI) + namespace + segredos via IaC.
       # O banco de dados sobe depois, junto com a aplicacao, via manifestos k8s.
       - name: Terraform Init
         working-directory: infra
@@ -138,14 +152,6 @@ jobs:
           TF_VAR_webhook_secret: ${{ secrets.WEBHOOK_SECRET || 'ci-webhook-secret-com-no-minimo-32-bytes!!' }}
           TF_VAR_admin_password: ${{ secrets.ADMIN_PASSWORD || 'Ci-Admin-Pass-123456789' }}
         run: terraform apply -auto-approve -input=false
-
-      - name: Setup kubectl
-        uses: azure/setup-kubectl@v4
-
-      - name: Setup kind
-        uses: helm/kind-action@v1
-        with:
-          install_only: true
 
       # Garante que o cluster responde antes de aplicar os manifestos.
       - name: Aguardar cluster pronto

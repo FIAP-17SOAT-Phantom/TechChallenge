@@ -2,54 +2,74 @@
 # Provisionamento do cluster Kubernetes local (kind) para a Oficina Mecanica.
 #
 # Recursos criados:
-#   - kind_cluster.oficina        : cluster Kubernetes de 1 control-plane + 1 worker
+#   - null_resource.kind_cluster  : cria o cluster kind via CLI (versao unica)
 #   - kubernetes_namespace.oficina: namespace da aplicacao
 #   - kubernetes_secret.oficina   : segredos sensiveis da aplicacao
 #   - null_resource.kustomize     : aplica os manifestos k8s (opcional)
+#
+# Por que criar o cluster pelo CLI e nao pelo provider Terraform de kind?
+# Para evitar DUAS versoes de kind no fluxo (a embutida no provider e a do CLI
+# usada no "kind load docker-image"). Versoes divergentes geram o erro
+# "unknown containerd config version". Usando so o CLI, ha uma unica versao de
+# kind/containerd em todo o pipeline.
 #
 # O banco de dados PostgreSQL NAO e provisionado aqui: ele ja faz parte dos
 # manifestos Kubernetes do overlay local (k8s/overlays/local, StatefulSet +
 # Service "postgres", imagem oficial postgres:16-alpine). Terraform cuida da
 # infra base (cluster + namespace + segredos) e os manifestos sobem app + banco.
 #
-# Para ambiente cloud (ex.: AWS EKS) substitua o provider "kind" pelo modulo
-# do cluster gerenciado e use um banco gerenciado (RDS). Veja infra/README.md.
+# Para ambiente cloud (ex.: AWS EKS) troque este null_resource pelo modulo do
+# cluster gerenciado e use um banco gerenciado (RDS). Veja infra/README.md.
 # ===========================================================================
 
-provider "kind" {}
+# ---------------------------------------------------------------------------
+# Cria o cluster kind via CLI. O CLI "kind" deve estar no PATH (o pipeline de
+# CD instala uma versao fixa; localmente instale conforme infra/README.md).
+# A config inline expoe a porta 30080 (NodePort da API) para o host.
+# ---------------------------------------------------------------------------
+# Config do cluster kind escrita em arquivo para evitar heredoc fragil no shell.
+resource "local_file" "kind_config" {
+  filename = "${path.module}/.kind-config.yaml"
+  content  = <<-EOT
+    kind: Cluster
+    apiVersion: kind.x-k8s.io/v1alpha4
+    nodes:
+      - role: control-plane
+        extraPortMappings:
+          - containerPort: 30080
+            hostPort: 30080
+            protocol: TCP
+      - role: worker
+  EOT
+}
 
-resource "kind_cluster" "oficina" {
-  name            = var.cluster_name
-  kubeconfig_path = pathexpand(var.kubeconfig_path)
-  wait_for_ready  = true
+resource "null_resource" "kind_cluster" {
+  triggers = {
+    cluster_name = var.cluster_name
+    node_image   = var.kind_node_image
+    config_hash  = local_file.kind_config.content_md5
+  }
 
-  kind_config {
-    kind        = "Cluster"
-    api_version = "kind.x-k8s.io/v1alpha4"
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command     = <<-EOT
+      set -euo pipefail
+      if ! kind get clusters | grep -qx "${var.cluster_name}"; then
+        kind create cluster --name "${var.cluster_name}" --image "${var.kind_node_image}" --wait 120s --config "${local_file.kind_config.filename}"
+      fi
+    EOT
+  }
 
-    node {
-      role = "control-plane"
-
-      # Expoe a porta do NodePort da API para o host (http://localhost:30080).
-      extra_port_mappings {
-        container_port = 30080
-        host_port      = 30080
-        protocol       = "TCP"
-      }
-    }
-
-    node {
-      role = "worker"
-    }
+  provisioner "local-exec" {
+    when    = destroy
+    command = "kind delete cluster --name ${self.triggers.cluster_name} || true"
   }
 }
 
-# O provider kubernetes consome o kubeconfig gerado pelo cluster kind.
+# O provider kubernetes consome o kubeconfig do contexto gerado pelo kind.
 provider "kubernetes" {
-  host                   = kind_cluster.oficina.endpoint
-  client_certificate     = kind_cluster.oficina.client_certificate
-  client_key             = kind_cluster.oficina.client_key
-  cluster_ca_certificate = kind_cluster.oficina.cluster_ca_certificate
+  config_path    = pathexpand(var.kubeconfig_path)
+  config_context = "kind-${var.cluster_name}"
 }
 
 resource "kubernetes_namespace" "oficina" {
@@ -61,7 +81,7 @@ resource "kubernetes_namespace" "oficina" {
     }
   }
 
-  depends_on = [kind_cluster.oficina]
+  depends_on = [null_resource.kind_cluster]
 }
 
 # ---------------------------------------------------------------------------
@@ -95,7 +115,7 @@ resource "null_resource" "kustomize" {
   count = var.apply_k8s_manifests ? 1 : 0
 
   triggers = {
-    cluster = kind_cluster.oficina.name
+    cluster = var.cluster_name
   }
 
   provisioner "local-exec" {

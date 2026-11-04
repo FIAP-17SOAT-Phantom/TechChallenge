@@ -16,7 +16,7 @@ nuvem (AWS EKS).
 
 | Recurso Terraform | Tipo | Descricao |
 |---|---|---|
-| `kind_cluster.oficina` | Cluster Kubernetes | Cluster local com 1 control-plane + 1 worker. Mapeia a porta `30080` do NodePort para o host. |
+| `null_resource.kind_cluster` | Cluster Kubernetes | Cria o cluster kind via CLI (1 control-plane + 1 worker), mapeando a porta `30080` do NodePort para o host. Usa uma unica versao de kind em todo o fluxo. |
 | `kubernetes_namespace.oficina` | Namespace | Namespace `oficina-mecanica` onde a aplicacao e implantada. |
 | `kubernetes_secret.oficina` | Secret | `oficina-secrets` com senha do banco, JWT, segredo do webhook, admin e Resend. |
 | `null_resource.kustomize` | Deploy | Aplica `k8s/overlays/local` via `kubectl apply -k` (opcional, `apply_k8s_manifests`). |
@@ -27,8 +27,8 @@ As variaveis e seus valores padrao estao documentados em `variables.tf`.
 
 - [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.6
 - [Docker](https://docs.docker.com/get-docker/) em execucao (o kind cria o cluster em containers)
-- [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
-- [kubectl](https://kubernetes.io/docs/tasks/tools/) (necessario se `apply_k8s_manifests = true`)
+- [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation) CLI no PATH (o Terraform chama `kind` para criar o cluster). Use a mesma versao do pipeline (v0.27.0).
+- [kubectl](https://kubernetes.io/docs/tasks/tools/) no PATH
 
 ## Como aplicar
 
@@ -86,7 +86,7 @@ Cloud SQL) em vez do PostgreSQL do overlay local:
 
 Para provisionar na nuvem em vez do kind:
 
-1. Substitua o provider `kind` e o recurso `kind_cluster` pelo modulo oficial
+1. Substitua o `null_resource.kind_cluster` pelo modulo oficial
    [`terraform-aws-modules/eks/aws`](https://registry.terraform.io/modules/terraform-aws-modules/eks/aws/latest)
    (cria VPC, control-plane EKS e node groups).
 2. Provisione o banco com
